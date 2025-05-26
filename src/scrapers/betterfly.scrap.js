@@ -95,7 +95,7 @@ class BetterflyScraper extends BaseScraper {
         const jobInfo = $element.find('.text-md').text().trim();
         const infoItems = jobInfo.split('·').map((item) => item.trim());
 
-        infoItems.forEach((item) => {
+        for (const item of infoItems) {
           if (item.includes('Híbrido') || item.includes('Remoto') || item.includes('Presencial')) {
             workMode = item.replace(/[\n\t]/g, '').trim();
           } else if (
@@ -108,7 +108,7 @@ class BetterflyScraper extends BaseScraper {
           } else {
             department = item;
           }
-        });
+        }
 
         // Solo agregar trabajos en Chile
         if (location.includes('Chile') && title && fullJobUrl) {

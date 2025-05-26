@@ -45,22 +45,22 @@ const jobDescriptions = [
   'Backend engineer: Node.js, PostgreSQL, Docker, AWS',
 ];
 
-jobDescriptions.forEach((desc, index) => {
+for (const [index, desc] of jobDescriptions.entries()) {
   console.log(`\n${index + 1}. "${desc}"`);
   const tags = extractTags(desc);
   console.log(`   Tags extraídos: [${tags.join(', ')}]`);
-});
+}
 
 // 3. Demostrar agrupación de tags
 console.log('\n3. 🏷️ AGRUPACIÓN DE TAGS POR CATEGORÍAS');
 console.log('-'.repeat(40));
 
 const sampleTags = ['react', 'python', 'aws', 'postgresql', 'docker', 'jest'];
-sampleTags.forEach((tag) => {
+for (const tag of sampleTags) {
   const group = tagSystem.getTagGroup(tag);
   const category = tagSystem.getTagCategory(tag);
   console.log(`${tag} → Categoría: ${category}, Grupo: ${group ? group.name : 'ninguno'}`);
-});
+}
 
 // 4. Sugerir tags relacionados
 console.log('\n4. 🔗 TAGS RELACIONADOS');
@@ -88,13 +88,13 @@ console.log('\n6. 💡 SUGERENCIAS DE BÚSQUEDA');
 console.log('-'.repeat(40));
 
 const searchQueries = ['react', 'cloud', 'data'];
-searchQueries.forEach((query) => {
+for (const query of searchQueries) {
   const suggestions = tagSystem.suggestTags(query, 5);
   console.log(`\nBúsqueda: "${query}"`);
-  suggestions.forEach((suggestion) => {
+  for (const suggestion of suggestions) {
     console.log(`  → ${suggestion.tag} (${suggestion.type}, relevancia: ${suggestion.relevance})`);
-  });
-});
+  }
+}
 
 // 7. Estadísticas de una colección de tags
 console.log('\n7. 📈 ESTADÍSTICAS DE TAGS');

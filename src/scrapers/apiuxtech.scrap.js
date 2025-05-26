@@ -96,7 +96,7 @@ class ApiuxTechScraper extends BaseScraper {
       const jobElements = $('#jobs_list_container li');
       console.log(`📝 Encontrados ${jobElements.length} elementos de trabajo`);
 
-      jobElements.each((i, element) => {
+      jobElements.each((_i, element) => {
         const $element = $(element);
         const jobLink = $element.find('a').attr('href');
         const title = $element.find('.text-block-base-link, span[title]').text().trim();
@@ -168,7 +168,7 @@ class ApiuxTechScraper extends BaseScraper {
       const benefits = [];
 
       const extractSections = (container) => {
-        container.find('h3, h2').each((i, header) => {
+        container.find('h3, h2').each((_i, header) => {
           const sectionTitle = $(header).text().trim();
           let sectionContent = '';
 
@@ -189,13 +189,13 @@ class ApiuxTechScraper extends BaseScraper {
       }
 
       // Procesar secciones para extraer listas
-      Object.keys(sections).forEach((title) => {
+      for (const title of Object.keys(sections)) {
         const sectionHtml = sections[title];
         const sectionElement = cheerio.load(sectionHtml);
         const lowercaseTitle = title.toLowerCase();
 
         if (lowercaseTitle.includes('funciones') || lowercaseTitle.includes('responsabilidades')) {
-          sectionElement('li').each((i, li) => {
+          sectionElement('li').each((_i, li) => {
             const text = sectionElement(li).text().trim();
             if (text) functions.push(text);
           });
@@ -206,19 +206,19 @@ class ApiuxTechScraper extends BaseScraper {
           lowercaseTitle.includes('requisitos') ||
           lowercaseTitle.includes('perfil')
         ) {
-          sectionElement('li').each((i, li) => {
+          sectionElement('li').each((_i, li) => {
             const text = sectionElement(li).text().trim();
             if (text) requirements.push(text);
           });
         }
 
         if (lowercaseTitle.includes('beneficios') || lowercaseTitle.includes('ofrecemos')) {
-          sectionElement('li').each((i, li) => {
+          sectionElement('li').each((_i, li) => {
             const text = sectionElement(li).text().trim();
             if (text) benefits.push(text);
           });
         }
-      });
+      }
 
       // Crear descripción completa
       let completeDescription = `# ${fullTitle || job.title}\n\n`;

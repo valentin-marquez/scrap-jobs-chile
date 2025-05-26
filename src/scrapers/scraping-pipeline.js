@@ -340,19 +340,21 @@ class ScrapingPipeline {
 
   getUniqueTags(jobs) {
     const allTags = new Set();
-    jobs.forEach((job) => {
-      job.tags.forEach((tag) => allTags.add(tag));
-    });
+    for (const job of jobs) {
+      for (const tag of job.tags) {
+        allTags.add(tag);
+      }
+    }
     return Array.from(allTags);
   }
 
   getTopTags(jobs, limit = 20) {
     const tagCounts = {};
-    jobs.forEach((job) => {
-      job.tags.forEach((tag) => {
+    for (const job of jobs) {
+      for (const tag of job.tags) {
         tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-      });
-    });
+      }
+    }
 
     return Object.entries(tagCounts)
       .sort((a, b) => b[1] - a[1])
@@ -372,21 +374,23 @@ class ScrapingPipeline {
       other: new Set(),
     };
 
-    jobs.forEach((job) => {
+    for (const job of jobs) {
       if (job.categorizedTags) {
-        Object.keys(categories).forEach((category) => {
+        for (const category of Object.keys(categories)) {
           if (job.categorizedTags[category]) {
-            job.categorizedTags[category].forEach((tag) => categories[category].add(tag));
+            for (const tag of job.categorizedTags[category]) {
+              categories[category].add(tag);
+            }
           }
-        });
+        }
       }
-    });
+    }
 
     // Convertir Sets a arrays con conteos
     const result = {};
-    Object.keys(categories).forEach((category) => {
+    for (const category of Object.keys(categories)) {
       result[category] = Array.from(categories[category]);
-    });
+    }
 
     return result;
   }

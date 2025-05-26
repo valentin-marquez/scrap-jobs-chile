@@ -433,15 +433,15 @@ class TagSystem {
   buildAliasMap() {
     const aliasMap = new Map();
 
-    Object.entries(this.tagVariations).forEach(([canonical, variations]) => {
+    for (const [canonical, variations] of Object.entries(this.tagVariations)) {
       // El tag canónico se mapea a sí mismo
       aliasMap.set(canonical, canonical);
 
       // Todas las variaciones se mapean al tag canónico
-      variations.forEach((variation) => {
+      for (const variation of variations) {
         aliasMap.set(variation.toLowerCase(), canonical);
-      });
-    });
+      }
+    }
 
     return aliasMap;
   }
@@ -545,15 +545,15 @@ class TagSystem {
     const related = new Set();
 
     // Buscar en grupos
-    Object.values(this.tagGroups).forEach((group) => {
+    for (const group of Object.values(this.tagGroups)) {
       if (group.tags.includes(normalizedTag)) {
-        group.tags.forEach((groupTag) => {
+        for (const groupTag of group.tags) {
           if (groupTag !== normalizedTag) {
             related.add(groupTag);
           }
-        });
+        }
       }
-    });
+    }
 
     return Array.from(related);
   }
@@ -601,7 +601,7 @@ class TagSystem {
     const suggestions = [];
 
     // Buscar en tags canónicos
-    Object.keys(this.tagVariations).forEach((canonical) => {
+    for (const canonical of Object.keys(this.tagVariations)) {
       if (canonical.includes(query)) {
         suggestions.push({
           tag: canonical,
@@ -609,11 +609,11 @@ class TagSystem {
           relevance: canonical.indexOf(query) === 0 ? 1 : 0.8,
         });
       }
-    });
+    }
 
     // Buscar en variaciones
-    Object.entries(this.tagVariations).forEach(([canonical, variations]) => {
-      variations.forEach((variation) => {
+    for (const [canonical, variations] of Object.entries(this.tagVariations)) {
+      for (const variation of variations) {
         if (
           variation.toLowerCase().includes(query) &&
           !suggestions.find((s) => s.tag === canonical)
@@ -625,8 +625,8 @@ class TagSystem {
             relevance: variation.toLowerCase().indexOf(query) === 0 ? 0.9 : 0.6,
           });
         }
-      });
-    });
+      }
+    }
 
     return suggestions.sort((a, b) => b.relevance - a.relevance).slice(0, limit);
   }
@@ -647,16 +647,16 @@ class TagSystem {
     };
 
     // Categorizar tags
-    normalized.forEach((tag) => {
+    for (const tag of normalized) {
       const category = this.getTagCategory(tag);
       if (!analysis.categories[category]) {
         analysis.categories[category] = [];
       }
       analysis.categories[category].push(tag);
-    });
+    }
 
     // Agrupar tags
-    normalized.forEach((tag) => {
+    for (const tag of normalized) {
       const group = this.getTagGroup(tag);
       if (group) {
         if (!analysis.groups[group.key]) {
@@ -667,12 +667,12 @@ class TagSystem {
         }
         analysis.groups[group.key].tags.push(tag);
       }
-    });
+    }
 
     // Sugerir tags relacionados
-    normalized.forEach((tag) => {
+    for (const tag of normalized) {
       const related = this.getRelatedTags(tag);
-      related.forEach((relatedTag) => {
+      for (const relatedTag of related) {
         if (!normalized.includes(relatedTag)) {
           analysis.relatedSuggestions.push({
             suggested: relatedTag,
@@ -680,8 +680,8 @@ class TagSystem {
             reason: `Related to ${tag}`,
           });
         }
-      });
-    });
+      }
+    }
 
     return analysis;
   }
@@ -706,24 +706,24 @@ class TagSystem {
     };
 
     // Contar por categoría
-    tagArray.forEach((tag) => {
+    for (const tag of tagArray) {
       const category = this.getTagCategory(tag);
       stats.byCategory[category] = (stats.byCategory[category] || 0) + 1;
-    });
+    }
 
     // Contar por grupo
-    tagArray.forEach((tag) => {
+    for (const tag of tagArray) {
       const group = this.getTagGroup(tag);
       if (group) {
         stats.byGroup[group.key] = (stats.byGroup[group.key] || 0) + 1;
       }
-    });
+    }
 
     // Tags más comunes
     const tagCounts = {};
-    tagArray.forEach((tag) => {
+    for (const tag of tagArray) {
       tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-    });
+    }
 
     stats.mostCommon = Object.entries(tagCounts)
       .sort((a, b) => b[1] - a[1])
@@ -767,21 +767,21 @@ function extractTags(text, options = {}) {
   };
 
   // Buscar keywords principales
-  techKeywords.forEach((keyword) => {
+  for (const keyword of techKeywords) {
     if (keyword.length >= minWordLength && isExactMatch(keyword, normalizedText)) {
       foundTags.add(keyword);
     }
-  });
+  }
 
   // Buscar variaciones si está habilitado
   if (includeVariations) {
-    Object.entries(tagVariations).forEach(([mainTag, variations]) => {
-      variations.forEach((variation) => {
+    for (const [mainTag, variations] of Object.entries(tagVariations)) {
+      for (const variation of variations) {
         if (variation.length >= minWordLength && isExactMatch(variation, normalizedText)) {
           foundTags.add(normalize ? mainTag : variation);
         }
-      });
-    });
+      }
+    }
   }
 
   // Convertir a array y normalizar si se solicita
@@ -869,7 +869,7 @@ function categorizeTags(tags) {
   ];
   const cloudKeywords = ['aws', 'azure', 'gcp', 'docker', 'kubernetes', 'terraform', 'ansible'];
 
-  tags.forEach((tag) => {
+  for (const tag of tags) {
     if (languageKeywords.includes(tag)) {
       categories.languages.push(tag);
     } else if (frameworkKeywords.includes(tag)) {
@@ -881,7 +881,7 @@ function categorizeTags(tags) {
     } else {
       categories.other.push(tag);
     }
-  });
+  }
 
   return categories;
 }
