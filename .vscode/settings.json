@@ -1,0 +1,17 @@
+{
+    // Specifies the default Python interpreter path.
+    // Assumes a virtual environment named '.venv' is in your workspace root.
+    // On Windows, the Python executable is typically in '.venv/Scripts/python.exe'.
+    // On macOS/Linux, it would be '.venv/bin/python'.
+    "python.defaultInterpreterPath": ".venv/Scripts/python.exe",
+
+    // Sets the default terminal profile for Windows to PowerShell.
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+
+    // Ensures that the selected Python virtual environment is automatically
+    // activated when a new integrated terminal is opened.
+    "python.terminal.activateEnvironment": true,
+
+    // Also attempt to activate the Python environment in the currently active terminal.
+    "python.terminal.activateEnvInCurrentTerminal": true
+}

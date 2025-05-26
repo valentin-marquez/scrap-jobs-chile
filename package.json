@@ -1,0 +1,45 @@
+{
+  "dependencies": {
+    "axios": "^1.4.0",
+    "axios-cookiejar-support": "^4.0.7",
+    "base-64": "^1.0.0",
+    "cheerio": "^1.0.0",
+    "https": "^1.0.0",
+    "tough-cookie": "^4.1.4",
+    "turndown": "^7.2.0"
+  },
+  "scripts": {
+    "start": "node src/main.js",
+    "scrape:all": "node src/main.js",
+    "scrape:parallel": "PARALLEL=true node src/main.js",
+    "scrape:falabella": "node src/scrapers/falabella-scraper.js",
+    "test:tags": "node -e \"const { extractTags } = require('./src/utils/common_tags'); console.log('Testing tag extraction:'); console.log(extractTags('Senior Rust developer with experience in rustic systems'));\"",
+    "demo:tags": "node src/utils/tag-system-demo.js",
+    "demo": "node -e \"require('./src/main.js')\"",
+    "clean": "rm -rf output/*.json",
+    "setup": "mkdir -p output && echo 'Output directory created'",
+
+    "# Legacy scripts (deprecated)": "",
+    "scrape:apiux": "node src/scrapers/apiuxtech.scrap.js",
+    "scrape:betterfly": "node src/scrapers/betterfly.scrap.js",
+    "scrape:entel": "node src/scrapers/entel.scrap.js",
+    "scrape:fintual": "node src/scrapers/fintual.scrap.js",
+    "scrape:sonda": "node src/scrapers/sona.scrap.js"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": [
+    "scraping",
+    "jobs",
+    "chile",
+    "tech",
+    "automation",
+    "pipeline"
+  ],
+  "description": "Sistema modular de scraping para ofertas de trabajo tecnológicas en Chile",
+  "main": "src/main.js"
+}
