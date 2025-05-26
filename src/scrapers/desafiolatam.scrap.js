@@ -26,6 +26,49 @@ class DesafioLatamScraper extends BaseScraper {
   }
 
   /**
+   * Extraer datos JSON-LD de la página de trabajo
+   */
+  extractJsonLd($) {
+    try {
+      const jsonLdScript = $('script[type="application/ld+json"]').first();
+      if (jsonLdScript.length > 0) {
+        let jsonText = jsonLdScript.html().trim();
+        
+        // Limpiar caracteres de control y problemas comunes
+        jsonText = jsonText
+          .replace(/\r\n/g, '\\n')
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r')
+          .replace(/\t/g, '\\t')
+          .replace(/[\x00-\x1F\x7F]/g, '') // Remover caracteres de control
+          .replace(/\\n\s*\\n/g, '\\n') // Remover dobles saltos de línea
+          .trim();
+        
+        console.log('🔍 JSON-LD encontrado, intentando parsear...');
+        const jsonData = JSON.parse(jsonText);
+        
+        // Validar que sea un JobPosting
+        if (jsonData['@type'] === 'JobPosting') {
+          console.log('✅ JSON-LD válido extraído:', jsonData.title);
+          return {
+            title: jsonData.title,
+            description: jsonData.description,
+            datePosted: jsonData.datePosted,
+            employmentType: jsonData.employmentType,
+            hiringOrganization: jsonData.hiringOrganization,
+            jobLocation: jsonData.jobLocation,
+            validThrough: jsonData.validThrough,
+            identifier: jsonData.identifier,
+          };
+        }
+      }
+    } catch (error) {
+      console.log('❌ No se pudo extraer JSON-LD:', error.message.substring(0, 100));
+    }
+    return null;
+  }
+
+  /**
    * Método principal de scraping
    */
   async scrape() {
@@ -161,6 +204,9 @@ class DesafioLatamScraper extends BaseScraper {
       const response = await this.makeRequest(job.jobUrl);
       const $ = cheerio.load(response.data);
 
+      // Intentar extraer datos JSON-LD primero
+      const jsonLdData = this.extractJsonLd($);
+
       // Extraer información del headline
       const headline = $('.posting-headline').text().trim();
 
@@ -183,7 +229,21 @@ class DesafioLatamScraper extends BaseScraper {
 
       // Extraer descripción del trabajo
       const jobDescription = $('.section-wrapper .section[data-qa="job-description"]').html();
-      const jobDescriptionMarkdown = this.turndownService.turndown(jobDescription || '');
+      let jobDescriptionText = '';
+
+      // Usar descripción de JSON-LD si está disponible, sino usar la extraída
+      if (jsonLdData && jsonLdData.description) {
+        // Limpiar HTML entities en la descripción JSON-LD
+        jobDescriptionText = jsonLdData.description
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/\\n/g, '\n')
+          .replace(/<[^>]*>/g, '') // Remover tags HTML
+          .trim();
+      } else {
+        jobDescriptionText = this.turndownService.turndown(jobDescription || '');
+      }
 
       // Extraer secciones adicionales
       const sections = {};
@@ -204,7 +264,7 @@ class DesafioLatamScraper extends BaseScraper {
       const closingDescriptionMarkdown = this.turndownService.turndown(closingDescription || '');
 
       // Crear descripción completa
-      let completeDescription = `# ${job.title}\n\n## Descripción\n\n${jobDescriptionMarkdown}\n\n`;
+      let completeDescription = `# ${jsonLdData?.title || job.title}\n\n## Descripción\n\n${jobDescriptionText}\n\n`;
 
       // Agregar secciones comunes de Desafío Latam
       if (sections.Requisitos || sections['Requisitos mínimos']) {
@@ -242,12 +302,33 @@ class DesafioLatamScraper extends BaseScraper {
       completeDescription +=
         '## Sobre la Empresa\n\nDesafío Latam es una institución educativa líder en Latinoamérica especializada en tecnología y transformación digital. Ofrecemos programas de capacitación en áreas como Data Science, Desarrollo Web, UX/UI y más, con el objetivo de formar profesionales preparados para los desafíos del futuro digital.\n\n';
 
+      // Extraer fecha de publicación y ubicación desde JSON-LD
+      let publishedDate = null;
+      let location = categories.location || job.location;
+      let employmentType = categories.commitment || job.commitment;
+
+      if (jsonLdData) {
+        if (jsonLdData.datePosted) {
+          publishedDate = new Date(jsonLdData.datePosted).toISOString();
+        }
+        if (jsonLdData.jobLocation?.address?.addressLocality) {
+          location = jsonLdData.jobLocation.address.addressLocality;
+        }
+        if (jsonLdData.employmentType) {
+          employmentType = jsonLdData.employmentType;
+        }
+      }
+
       return {
         description: completeDescription,
         headline,
         categories,
         sections,
         closingDescription: closingDescriptionMarkdown,
+        jsonLdData,
+        publishedDate,
+        location,
+        employmentType,
       };
     } catch (error) {
       console.error(`Error obteniendo detalles de ${job.title}: ${error.message}`);
@@ -278,8 +359,7 @@ class DesafioLatamScraper extends BaseScraper {
       const titleLower = rawJob.title.toLowerCase();
 
       // Tags de nivel
-      if (titleLower.includes('senior') || titleLower.includes('líder'))
-        allTags.push('senior', 'leadership');
+      if (titleLower.includes('senior') || titleLower.includes('líder')) allTags.push('senior', 'leadership');
       if (titleLower.includes('junior')) allTags.push('junior');
 
       // Tags de modalidad
@@ -321,15 +401,24 @@ class DesafioLatamScraper extends BaseScraper {
         allTags.push('cybersecurity', 'network-security', 'seguridad-informatica');
       }
 
+      // Usar fecha de publicación de JSON-LD si está disponible
+      const publishedDate = rawJob.publishedDate || new Date().toISOString();
+      
+      // Usar ubicación mejorada
+      const location = rawJob.location || rawJob.categories?.location || 'Chile';
+      
+      // Usar tipo de empleo mejorado
+      const employmentType = rawJob.employmentType || rawJob.categories?.commitment || rawJob.commitment;
+
       return {
         id: rawJob.id,
-        title: rawJob.title,
+        title: rawJob.jsonLdData?.title || rawJob.title,
         description: rawJob.description || '',
         company: companyName,
-        location: rawJob.location || 'Chile',
-        jobType: this.normalizeJobType(rawJob.commitment, rawJob.workplaceType),
+        location,
+        jobType: this.normalizeJobType(employmentType, rawJob.workplaceType),
         department: rawJob.department || rawJob.category || '',
-        publishedDate: new Date().toISOString(),
+        publishedDate,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         jobUrl: rawJob.jobUrl,
         tags: [...new Set(allTags)],
@@ -337,6 +426,7 @@ class DesafioLatamScraper extends BaseScraper {
           scrapedAt: new Date().toISOString(),
           scraper: this.constructor.name,
           source: 'Desafío Latam Lever',
+          hasJsonLd: !!rawJob.jsonLdData,
         },
         details: {
           headline: rawJob.headline,
@@ -344,7 +434,8 @@ class DesafioLatamScraper extends BaseScraper {
           sections: rawJob.sections || {},
           closingDescription: rawJob.closingDescription || '',
           workplaceType: rawJob.workplaceType,
-          commitment: rawJob.commitment,
+          commitment: employmentType,
+          jsonLdData: rawJob.jsonLdData,
         },
       };
     } catch (error) {

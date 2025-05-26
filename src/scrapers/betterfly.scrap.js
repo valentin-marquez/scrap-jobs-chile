@@ -29,6 +29,83 @@ class BetterflyScraper extends BaseScraper {
   }
 
   /**
+   * Extraer datos JSON-LD de la página de trabajo
+   */
+  extractJsonLd($) {
+    let jsonText = '';
+    try {
+      const jsonLdScript = $('script[type="application/ld+json"]').first();
+      if (jsonLdScript.length > 0) {
+        jsonText = jsonLdScript.html().trim();
+        
+        // Limpiar caracteres problemáticos de manera más agresiva
+        jsonText = jsonText
+          .replace(/^\s*[\r\n\t\f\v]+/, '') // Remover whitespace al inicio
+          .replace(/[\r\n\t\f\v]+\s*$/, '') // Remover whitespace al final
+          .replace(/\r\n/g, '\\n')
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r')
+          .replace(/\t/g, '\\t')
+          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remover caracteres de control
+          .replace(/\\n\s*\\n/g, '\\n') // Remover dobles saltos de línea
+          .replace(/^\uFEFF/, '') // Remover BOM si existe
+          .trim();
+        
+        // Intentar encontrar el inicio real del JSON si hay caracteres extra
+        const jsonStart = jsonText.indexOf('{');
+        const jsonEnd = jsonText.lastIndexOf('}');
+        
+        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+          jsonText = jsonText.substring(jsonStart, jsonEnd + 1);
+        }
+        
+        console.log('🔍 JSON-LD encontrado, intentando parsear...');
+        console.log('📝 Primeros 100 caracteres:', jsonText.substring(0, 100));
+        
+        // El problema parece ser que los \n no están siendo interpretados correctamente
+        // Vamos a intentar un enfoque diferente: usar el contenido crudo sin procesar caracteres de escape
+        let rawJsonText = jsonLdScript.html().trim();
+        
+        // Remover solo los caracteres de control problemáticos pero mantener saltos de línea reales
+        rawJsonText = rawJsonText
+          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remover caracteres de control
+          .replace(/^\uFEFF/, '') // Remover BOM si existe
+          .trim();
+        
+        // Buscar el JSON válido dentro del contenido
+        const rawJsonStart = rawJsonText.indexOf('{');
+        const rawJsonEnd = rawJsonText.lastIndexOf('}');
+        
+        if (rawJsonStart !== -1 && rawJsonEnd !== -1 && rawJsonEnd > rawJsonStart) {
+          rawJsonText = rawJsonText.substring(rawJsonStart, rawJsonEnd + 1);
+        }
+        
+        console.log('🔧 Intentando con contenido crudo...');
+        const jsonData = JSON.parse(rawJsonText);
+        
+        // Validar que sea un JobPosting
+        if (jsonData['@type'] === 'JobPosting') {
+          console.log('✅ JSON-LD válido extraído:', jsonData.title);
+          return {
+            title: jsonData.title,
+            description: jsonData.description,
+            datePosted: jsonData.datePosted,
+            employmentType: jsonData.employmentType,
+            hiringOrganization: jsonData.hiringOrganization,
+            jobLocation: jsonData.jobLocation,
+            validThrough: jsonData.validThrough,
+            identifier: jsonData.identifier,
+          };
+        }
+      }
+    } catch (error) {
+      console.log('❌ No se pudo extraer JSON-LD:', error.message.substring(0, 100));
+      console.log('🔍 Contenido problemático (primeros 50 chars):', jsonText?.substring(0, 50));
+    }
+    return null;
+  }
+
+  /**
    * Método principal de scraping
    */
   async scrape() {
@@ -137,14 +214,32 @@ class BetterflyScraper extends BaseScraper {
       const response = await this.client.get(job.jobUrl);
       const $ = cheerio.load(response.data);
 
+      // Intentar extraer datos JSON-LD primero
+      const jsonLdData = this.extractJsonLd($);
+
       // Obtener título completo
       const fullTitle = $('h1.font-company-header').text().trim();
       const shortDescription = $('h2.block.mt-2').text().trim();
 
       // Extraer contenido principal
       const contentSection = $('section.pt-20.pb-12 .prose');
-      const fullDescriptionHtml = contentSection.html();
-      const fullDescriptionMarkdown = this.turndownService.turndown(fullDescriptionHtml || '');
+      let fullDescriptionHtml = contentSection.html();
+      let fullDescriptionMarkdown = '';
+
+      // Usar descripción de JSON-LD si está disponible y es más completa
+      if (jsonLdData && jsonLdData.description) {
+        // Limpiar HTML entities y convertir a markdown
+        const cleanDescription = jsonLdData.description
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&quot;/g, '"');
+
+        fullDescriptionMarkdown = this.turndownService.turndown(cleanDescription);
+      } else {
+        fullDescriptionMarkdown = this.turndownService.turndown(fullDescriptionHtml || '');
+      }
 
       // Extraer listas estructuradas
       const responsibilities = [];
@@ -187,7 +282,12 @@ class BetterflyScraper extends BaseScraper {
       });
 
       // Crear descripción completa
-      let completeDescription = `# ${fullTitle}\n\n${shortDescription}\n\n`;
+      let completeDescription = `# ${jsonLdData?.title || fullTitle}\n\n`;
+
+      if (shortDescription) {
+        completeDescription += `${shortDescription}\n\n`;
+      }
+
       completeDescription += `${fullDescriptionMarkdown}\n\n`;
 
       if (responsibilities.length > 0) {
@@ -202,20 +302,53 @@ class BetterflyScraper extends BaseScraper {
         completeDescription += `## Beneficios\n\n${benefits.map((b) => `- ${b}`).join('\n')}\n\n`;
       }
 
+      // Extraer datos adicionales del JSON-LD
+      let publishedDate = null;
+      let location = job.location;
+      let employmentType = job.jobType;
+      let identifier = null;
+
+      if (jsonLdData) {
+        if (jsonLdData.datePosted) {
+          publishedDate = new Date(jsonLdData.datePosted).toISOString();
+        }
+        if (jsonLdData.jobLocation && Array.isArray(jsonLdData.jobLocation) && jsonLdData.jobLocation.length > 0) {
+          const jobLoc = jsonLdData.jobLocation[0];
+          if (jobLoc.address?.addressLocality) {
+            location = `${jobLoc.address.addressLocality}, Chile`;
+          }
+        }
+        if (jsonLdData.employmentType) {
+          employmentType = jsonLdData.employmentType === 'FULL_TIME' ? 'Full-time' : jsonLdData.employmentType;
+        }
+        if (jsonLdData.identifier?.value) {
+          identifier = jsonLdData.identifier.value;
+        }
+      }
+
       return {
-        fullTitle,
+        fullTitle: jsonLdData?.title || fullTitle,
         description: completeDescription,
         sections: {
           responsibilities,
           requirements,
           benefits,
         },
+        jsonLdData,
+        publishedDate,
+        location,
+        employmentType,
+        identifier,
       };
     } catch (error) {
       console.error(`Error obteniendo detalles de ${job.title}: ${error.message}`);
       return {
         description: '',
         sections: {},
+        jsonLdData: null,
+        publishedDate: null,
+        location: job.location,
+        employmentType: job.jobType,
       };
     }
   }
@@ -254,16 +387,27 @@ class BetterflyScraper extends BaseScraper {
       if (titleLower.includes('líder') || titleLower.includes('lead')) allTags.push('leadership');
       if (titleLower.includes('manager') || titleLower.includes('gerente'))
         allTags.push('management');
+      if (titleLower.includes('reemplazo') || titleLower.includes('temporal')) {
+        allTags.push('temporal', 'reemplazo');
+      }
+      if (titleLower.includes('pre') && titleLower.includes('post') && titleLower.includes('natal')) {
+        allTags.push('licencia-maternal', 'temporal');
+      }
+
+      // Usar datos mejorados del JSON-LD
+      const publishedDate = rawJob.publishedDate || new Date().toISOString();
+      const location = rawJob.location || 'Chile';
+      const employmentType = rawJob.employmentType || 'Full-time';
 
       return {
-        id: this.generateJobId(rawJob),
+        id: rawJob.identifier || this.generateJobId(rawJob),
         title: rawJob.fullTitle || rawJob.title,
         description: rawJob.description || '',
         company: companyName,
-        location: rawJob.location || 'Chile',
-        jobType: rawJob.jobType || 'Full-time',
+        location,
+        jobType: employmentType,
         department: rawJob.department || '',
-        publishedDate: new Date().toISOString(),
+        publishedDate,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         jobUrl: rawJob.jobUrl,
         tags: [...new Set(allTags)],
@@ -271,9 +415,11 @@ class BetterflyScraper extends BaseScraper {
           scrapedAt: new Date().toISOString(),
           scraper: this.constructor.name,
           source: 'Betterfly Careers',
+          hasJsonLd: !!rawJob.jsonLdData,
         },
         details: {
           sections: rawJob.sections || {},
+          jsonLdData: rawJob.jsonLdData,
         },
       };
     } catch (error) {
