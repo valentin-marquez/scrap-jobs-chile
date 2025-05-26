@@ -1,6 +1,6 @@
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 const { extractTags, validateAndCleanTags, categorizeTags } = require('../utils/common_tags');
 
 /**
@@ -15,7 +15,7 @@ class BaseScraper {
       timeout: 10000,
       maxAgeDays: 7,
       outputDir: './output',
-      ...config
+      ...config,
     };
 
     this.jobs = [];
@@ -35,12 +35,7 @@ class BaseScraper {
    * Realizar petición HTTP con reintentos automáticos
    */
   async makeRequest(url, options = {}) {
-    const {
-      method = 'GET',
-      headers = {},
-      data = null,
-      timeout = this.config.timeout
-    } = options;
+    const { method = 'GET', headers = {}, data = null, timeout = this.config.timeout } = options;
 
     let lastError;
 
@@ -52,16 +47,16 @@ class BaseScraper {
           method,
           url,
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            ...headers
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            ...headers,
           },
           timeout,
-          ...(data && { data })
+          ...(data && { data }),
         };
 
         const response = await axios(requestConfig);
         return response;
-
       } catch (error) {
         lastError = error;
         console.error(`Error en intento ${attempt}: ${error.message}`);
@@ -71,7 +66,9 @@ class BaseScraper {
         }
 
         if (attempt < this.config.maxRetries) {
-          console.log(`Esperando ${this.config.retryDelay/1000} segundos antes del siguiente intento...`);
+          console.log(
+            `Esperando ${this.config.retryDelay / 1000} segundos antes del siguiente intento...`
+          );
           await this.delay(this.config.retryDelay);
         }
       }
@@ -84,7 +81,7 @@ class BaseScraper {
    * Función para esperar un tiempo determinado
    */
   delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -130,16 +127,17 @@ class BaseScraper {
         jobType: rawJob.jobType || 'Full-time',
         department: rawJob.department || '',
         publishedDate: rawJob.publishedDate || new Date().toISOString(),
-        expiresAt: rawJob.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        expiresAt:
+          rawJob.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         jobUrl: rawJob.jobUrl || '',
         tags: cleanTags,
         categorizedTags,
         metadata: {
           scrapedAt: new Date().toISOString(),
           scraper: this.constructor.name,
-          source: rawJob.source || companyName
+          source: rawJob.source || companyName,
         },
-        ...rawJob // Permitir campos adicionales específicos del scraper
+        ...rawJob, // Permitir campos adicionales específicos del scraper
       };
 
       return normalizedJob;
@@ -148,7 +146,7 @@ class BaseScraper {
       this.errors.push({
         type: 'processing_error',
         message: error.message,
-        job: rawJob
+        job: rawJob,
       });
       return null;
     }
@@ -171,10 +169,10 @@ class BaseScraper {
       requiredTags = [],
       excludeTags = [],
       locations = [],
-      jobTypes = []
+      jobTypes = [],
     } = filters;
 
-    return jobs.filter(job => {
+    return jobs.filter((job) => {
       // Filtro por edad
       if (maxAge && !this.isWithinDays(job.publishedDate, maxAge)) {
         return false;
@@ -182,23 +180,19 @@ class BaseScraper {
 
       // Filtro por tags requeridos
       if (requiredTags.length > 0) {
-        const hasRequiredTag = requiredTags.some(tag =>
-          job.tags.includes(tag.toLowerCase())
-        );
+        const hasRequiredTag = requiredTags.some((tag) => job.tags.includes(tag.toLowerCase()));
         if (!hasRequiredTag) return false;
       }
 
       // Filtro por tags excluidos
       if (excludeTags.length > 0) {
-        const hasExcludedTag = excludeTags.some(tag =>
-          job.tags.includes(tag.toLowerCase())
-        );
+        const hasExcludedTag = excludeTags.some((tag) => job.tags.includes(tag.toLowerCase()));
         if (hasExcludedTag) return false;
       }
 
       // Filtro por ubicación
       if (locations.length > 0) {
-        const matchesLocation = locations.some(location =>
+        const matchesLocation = locations.some((location) =>
           job.location.toLowerCase().includes(location.toLowerCase())
         );
         if (!matchesLocation) return false;
@@ -206,7 +200,7 @@ class BaseScraper {
 
       // Filtro por tipo de trabajo
       if (jobTypes.length > 0) {
-        const matchesJobType = jobTypes.some(type =>
+        const matchesJobType = jobTypes.some((type) =>
           job.jobType.toLowerCase().includes(type.toLowerCase())
         );
         if (!matchesJobType) return false;
@@ -238,7 +232,7 @@ class BaseScraper {
       this.errors.push({
         type: 'save_error',
         message: error.message,
-        filename
+        filename,
       });
       throw error;
     }
@@ -260,7 +254,7 @@ class BaseScraper {
         return acc;
       }, {}),
       tags: this.getTagStatistics(),
-      companies: this.getCompanyStatistics()
+      companies: this.getCompanyStatistics(),
     };
 
     return stats;
@@ -271,11 +265,11 @@ class BaseScraper {
    */
   getTagStatistics() {
     const tagCounts = {};
-    this.jobs.forEach(job => {
-      job.tags.forEach(tag => {
+    for (const job of this.jobs) {
+      for (const tag of job.tags) {
         tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-      });
-    });
+      }
+    }
 
     return Object.entries(tagCounts)
       .sort((a, b) => b[1] - a[1])
@@ -291,9 +285,9 @@ class BaseScraper {
    */
   getCompanyStatistics() {
     const companyCounts = {};
-    this.jobs.forEach(job => {
+    for (const job of this.jobs) {
       companyCounts[job.company] = (companyCounts[job.company] || 0) + 1;
-    });
+    }
 
     return companyCounts;
   }
@@ -327,16 +321,15 @@ class BaseScraper {
       return {
         jobs: this.jobs,
         stats,
-        errors: this.errors
+        errors: this.errors,
       };
-
     } catch (error) {
       this.endTime = new Date();
       console.error(`❌ Error en scraper ${this.constructor.name}: ${error.message}`);
       this.errors.push({
         type: 'scraper_error',
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
       throw error;
     }

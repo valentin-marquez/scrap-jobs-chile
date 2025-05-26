@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 const { validateAndCleanTags } = require('../utils/common_tags');
 
 /**
@@ -14,7 +14,7 @@ class ScrapingPipeline {
       statsFile: 'scraping_stats.json',
       parallel: false,
       maxConcurrent: 3,
-      ...config
+      ...config,
     };
 
     this.scrapers = new Map();
@@ -38,8 +38,8 @@ class ScrapingPipeline {
         enabled: true,
         filters: {},
         priority: 1,
-        ...config
-      }
+        ...config,
+      },
     });
 
     console.log(`✅ Scraper '${name}' registrado en el pipeline`);
@@ -87,9 +87,8 @@ class ScrapingPipeline {
         jobs: filteredJobs,
         stats,
         results: this.results,
-        errors: this.errors
+        errors: this.errors,
       };
-
     } catch (error) {
       this.endTime = new Date();
       console.error(`❌ Error en pipeline: ${error.message}`);
@@ -97,7 +96,7 @@ class ScrapingPipeline {
         type: 'pipeline_error',
         message: error.message,
         stack: error.stack,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
       throw error;
     }
@@ -122,18 +121,17 @@ class ScrapingPipeline {
         this.results.set(name, {
           ...result,
           scraperName: name,
-          executedAt: new Date().toISOString()
+          executedAt: new Date().toISOString(),
         });
 
         console.log(`✅ ${name}: ${result.jobs.length} trabajos obtenidos`);
-
       } catch (error) {
         console.error(`❌ Error en scraper ${name}: ${error.message}`);
         this.errors.push({
           type: 'scraper_error',
           scraper: name,
           message: error.message,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
     }
@@ -143,15 +141,18 @@ class ScrapingPipeline {
    * Ejecutar scrapers en paralelo
    */
   async runScrapersInParallel(globalFilters) {
-    const enabledScrapers = Array.from(this.scrapers.entries())
-      .filter(([, config]) => config.config.enabled);
+    const enabledScrapers = Array.from(this.scrapers.entries()).filter(
+      ([, config]) => config.config.enabled
+    );
 
     // Dividir en lotes según maxConcurrent
     const batches = this.chunkArray(enabledScrapers, this.config.maxConcurrent);
 
     for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
       const batch = batches[batchIndex];
-      console.log(`\n🔄 Ejecutando lote ${batchIndex + 1}/${batches.length} (${batch.length} scrapers)`);
+      console.log(
+        `\n🔄 Ejecutando lote ${batchIndex + 1}/${batches.length} (${batch.length} scrapers)`
+      );
 
       const promises = batch.map(async ([name, { instance, config }]) => {
         try {
@@ -161,19 +162,18 @@ class ScrapingPipeline {
           this.results.set(name, {
             ...result,
             scraperName: name,
-            executedAt: new Date().toISOString()
+            executedAt: new Date().toISOString(),
           });
 
           console.log(`✅ ${name}: ${result.jobs.length} trabajos obtenidos`);
           return { name, success: true, jobCount: result.jobs.length };
-
         } catch (error) {
           console.error(`❌ Error en scraper ${name}: ${error.message}`);
           this.errors.push({
             type: 'scraper_error',
             scraper: name,
             message: error.message,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
           return { name, success: false, error: error.message };
         }
@@ -204,8 +204,8 @@ class ScrapingPipeline {
             metadata: {
               ...job.metadata,
               consolidatedAt: new Date().toISOString(),
-              pipeline: this.constructor.name
-            }
+              pipeline: this.constructor.name,
+            },
           };
 
           allJobs.push(consolidatedJob);
@@ -215,7 +215,9 @@ class ScrapingPipeline {
       }
     }
 
-    console.log(`🔗 Consolidados ${allJobs.length} trabajos únicos de ${this.results.size} scrapers`);
+    console.log(
+      `🔗 Consolidados ${allJobs.length} trabajos únicos de ${this.results.size} scrapers`
+    );
     return allJobs;
   }
 
@@ -237,10 +239,10 @@ class ScrapingPipeline {
 
     const originalCount = jobs.length;
 
-    let filteredJobs = jobs.filter(job => {
+    const filteredJobs = jobs.filter((job) => {
       // Filtro por tags requeridos
       if (filters.requiredTags && filters.requiredTags.length > 0) {
-        const hasRequiredTag = filters.requiredTags.some(tag =>
+        const hasRequiredTag = filters.requiredTags.some((tag) =>
           job.tags.includes(tag.toLowerCase())
         );
         if (!hasRequiredTag) return false;
@@ -248,7 +250,7 @@ class ScrapingPipeline {
 
       // Filtro por tags excluidos
       if (filters.excludeTags && filters.excludeTags.length > 0) {
-        const hasExcludedTag = filters.excludeTags.some(tag =>
+        const hasExcludedTag = filters.excludeTags.some((tag) =>
           job.tags.includes(tag.toLowerCase())
         );
         if (hasExcludedTag) return false;
@@ -256,7 +258,7 @@ class ScrapingPipeline {
 
       // Filtro por ubicaciones
       if (filters.locations && filters.locations.length > 0) {
-        const matchesLocation = filters.locations.some(location =>
+        const matchesLocation = filters.locations.some((location) =>
           job.location.toLowerCase().includes(location.toLowerCase())
         );
         if (!matchesLocation) return false;
@@ -264,7 +266,7 @@ class ScrapingPipeline {
 
       // Filtro por empresas
       if (filters.companies && filters.companies.length > 0) {
-        const matchesCompany = filters.companies.some(company =>
+        const matchesCompany = filters.companies.some((company) =>
           job.company.toLowerCase().includes(company.toLowerCase())
         );
         if (!matchesCompany) return false;
@@ -273,7 +275,9 @@ class ScrapingPipeline {
       return true;
     });
 
-    console.log(`🔍 Filtros globales aplicados: ${originalCount} → ${filteredJobs.length} trabajos`);
+    console.log(
+      `🔍 Filtros globales aplicados: ${originalCount} → ${filteredJobs.length} trabajos`
+    );
     return filteredJobs;
   }
 
@@ -288,22 +292,22 @@ class ScrapingPipeline {
       scrapers: {
         total: this.scrapers.size,
         executed: this.results.size,
-        errors: this.errors.filter(e => e.type === 'scraper_error').length
+        errors: this.errors.filter((e) => e.type === 'scraper_error').length,
       },
       jobs: {
         total: jobs.length,
         byCompany: this.getJobsByCompany(jobs),
         byLocation: this.getJobsByLocation(jobs),
-        byDepartment: this.getJobsByDepartment(jobs)
+        byDepartment: this.getJobsByDepartment(jobs),
       },
       tags: {
         total: this.getUniqueTags(jobs).length,
         topTags: this.getTopTags(jobs, 20),
-        byCategory: this.getTagsByCategory(jobs)
+        byCategory: this.getTagsByCategory(jobs),
       },
-      uniqueCompanies: [...new Set(jobs.map(job => job.company))].length,
+      uniqueCompanies: [...new Set(jobs.map((job) => job.company))].length,
       uniqueTags: this.getUniqueTags(jobs).length,
-      errors: this.errors
+      errors: this.errors,
     };
 
     return stats;
@@ -336,16 +340,16 @@ class ScrapingPipeline {
 
   getUniqueTags(jobs) {
     const allTags = new Set();
-    jobs.forEach(job => {
-      job.tags.forEach(tag => allTags.add(tag));
+    jobs.forEach((job) => {
+      job.tags.forEach((tag) => allTags.add(tag));
     });
     return Array.from(allTags);
   }
 
   getTopTags(jobs, limit = 20) {
     const tagCounts = {};
-    jobs.forEach(job => {
-      job.tags.forEach(tag => {
+    jobs.forEach((job) => {
+      job.tags.forEach((tag) => {
         tagCounts[tag] = (tagCounts[tag] || 0) + 1;
       });
     });
@@ -365,16 +369,14 @@ class ScrapingPipeline {
       frameworks: new Set(),
       databases: new Set(),
       cloud: new Set(),
-      other: new Set()
+      other: new Set(),
     };
 
-    jobs.forEach(job => {
+    jobs.forEach((job) => {
       if (job.categorizedTags) {
-        Object.keys(categories).forEach(category => {
+        Object.keys(categories).forEach((category) => {
           if (job.categorizedTags[category]) {
-            job.categorizedTags[category].forEach(tag =>
-              categories[category].add(tag)
-            );
+            job.categorizedTags[category].forEach((tag) => categories[category].add(tag));
           }
         });
       }
@@ -382,7 +384,7 @@ class ScrapingPipeline {
 
     // Convertir Sets a arrays con conteos
     const result = {};
-    Object.keys(categories).forEach(category => {
+    Object.keys(categories).forEach((category) => {
       result[category] = Array.from(categories[category]);
     });
 
@@ -435,7 +437,7 @@ class ScrapingPipeline {
       results: this.results.size,
       errors: this.errors.length,
       isRunning: this.startTime && !this.endTime,
-      lastRun: this.endTime || this.startTime
+      lastRun: this.endTime || this.startTime,
     };
   }
 }

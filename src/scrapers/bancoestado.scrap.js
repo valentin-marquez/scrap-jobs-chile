@@ -12,7 +12,7 @@ class BancoEstadoScraper extends BaseScraper {
       retryDelay: 2000,
       timeout: 10000,
       maxAgeDays: 14,
-      ...config
+      ...config,
     });
 
     this.baseUrl = 'https://bancoestado.trabajando.cl';
@@ -35,11 +35,11 @@ class BancoEstadoScraper extends BaseScraper {
       // Obtener detalles de cada trabajo
       for (let i = 0; i < jobListings.length; i++) {
         const job = jobListings[i];
-        console.log(`📋 Obteniendo detalles ${i+1}/${jobListings.length}: ${job.nombreCargo}`);
+        console.log(`📋 Obteniendo detalles ${i + 1}/${jobListings.length}: ${job.nombreCargo}`);
 
         try {
           const details = await this.getJobDetails(job.idOferta);
-          const processedJob = this.processJob({...job, ...details}, 'Banco Estado');
+          const processedJob = this.processJob({ ...job, ...details }, 'Banco Estado');
           if (processedJob) {
             this.jobs.push(processedJob);
           }
@@ -48,7 +48,7 @@ class BancoEstadoScraper extends BaseScraper {
           this.errors.push({
             type: 'job_detail_error',
             message: error.message,
-            job: job.nombreCargo
+            job: job.nombreCargo,
           });
         }
 
@@ -59,7 +59,6 @@ class BancoEstadoScraper extends BaseScraper {
       }
 
       console.log(`✅ Procesados ${this.jobs.length} trabajos de Banco Estado`);
-
     } catch (error) {
       console.error(`Error en scraping de Banco Estado: ${error.message}`);
       throw error;
@@ -71,7 +70,7 @@ class BancoEstadoScraper extends BaseScraper {
    */
   async getJobListings() {
     try {
-      let allJobs = [];
+      const allJobs = [];
       let totalPages = 1;
 
       // Primera búsqueda general para obtener todos los trabajos
@@ -82,13 +81,14 @@ class BancoEstadoScraper extends BaseScraper {
           const requestOptions = {
             method: 'GET',
             headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-              'Accept': 'application/json, text/plain, */*',
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+              Accept: 'application/json, text/plain, */*',
               'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
               'Accept-Encoding': 'gzip, deflate, br',
-              'Connection': 'keep-alive',
-              'Referer': 'https://bancoestado.trabajando.cl/'
-            }
+              Connection: 'keep-alive',
+              Referer: 'https://bancoestado.trabajando.cl/',
+            },
           };
 
           const url = `${this.searchUrl}?palabraClave=&pagina=${page}&orden=FECHA_PUBLICACION&tipoOrden=DESC&ofertaConfidencial=false&idDominio=160`;
@@ -98,7 +98,9 @@ class BancoEstadoScraper extends BaseScraper {
 
           if (page === 1) {
             totalPages = Math.min(data.cantidadPaginas || 1, 5); // Limitamos a 5 páginas
-            console.log(`📊 Total de páginas: ${totalPages}, Total ofertas: ${data.cantidadRegistros}`);
+            console.log(
+              `📊 Total de páginas: ${totalPages}, Total ofertas: ${data.cantidadRegistros}`
+            );
           }
 
           if (data.ofertas && Array.isArray(data.ofertas)) {
@@ -109,7 +111,6 @@ class BancoEstadoScraper extends BaseScraper {
           }
 
           await this.delay(500); // Pausa entre páginas
-
         } catch (error) {
           console.error(`Error obteniendo página ${page}: ${error.message}`);
           if (error.response) {
@@ -134,10 +135,11 @@ class BancoEstadoScraper extends BaseScraper {
       const recentJobs = this.filterRecentJobs(techJobs);
 
       console.log(`🔍 Filtrados ${techJobs.length} trabajos tech de ${allJobs.length} totales`);
-      console.log(`📅 ${recentJobs.length} trabajos tech recientes (últimos ${this.config.maxAgeDays} días)`);
+      console.log(
+        `📅 ${recentJobs.length} trabajos tech recientes (últimos ${this.config.maxAgeDays} días)`
+      );
 
       return recentJobs;
-
     } catch (error) {
       console.error('Error obteniendo trabajos:', error.message);
       console.log('🔄 Intentando método de respaldo...');
@@ -160,10 +162,10 @@ class BancoEstadoScraper extends BaseScraper {
       'ciberseguridad',
       'automatización',
       'programador',
-      'desarrollador'
+      'desarrollador',
     ];
 
-    let allJobs = [];
+    const allJobs = [];
 
     for (const term of techSearchTerms) {
       try {
@@ -174,15 +176,14 @@ class BancoEstadoScraper extends BaseScraper {
 
         if (response.data.ofertas && Array.isArray(response.data.ofertas)) {
           // Evitar duplicados basándose en idOferta
-          const newJobs = response.data.ofertas.filter(job =>
-            !allJobs.some(existing => existing.idOferta === job.idOferta)
+          const newJobs = response.data.ofertas.filter(
+            (job) => !allJobs.some((existing) => existing.idOferta === job.idOferta)
           );
           allJobs.push(...newJobs);
           console.log(`   ✅ ${newJobs.length} trabajos nuevos encontrados`);
         }
 
         await this.delay(1000); // Pausa entre búsquedas
-
       } catch (error) {
         console.error(`   ❌ Error buscando "${term}": ${error.message}`);
       }
@@ -204,55 +205,90 @@ class BancoEstadoScraper extends BaseScraper {
    * Filtrar solo trabajos tech reales
    */
   filterTechJobs(jobs) {
-    return jobs.filter(job => {
+    return jobs.filter((job) => {
       const titleLower = (job.nombreCargo || '').toLowerCase();
       const descLower = (job.descripcionOferta || '').toLowerCase();
       const fullText = `${titleLower} ${descLower}`;
 
       // Palabras que excluyen (no tech) - más específicas
       const excludeKeywords = [
-        'jefatura de oficina', 'jefe/a de estrategia', 'estrategia de clientes y marketing',
-        'encargado/a de sostenibilidad', 'asistente de servicios', 'asistente de finanzas',
-        'gestor/a operacional', 'ejecutivo/a emprende', 'ejecutivo comercial',
-        'asistente de growth marketing', 'growth marketing'
+        'jefatura de oficina',
+        'jefe/a de estrategia',
+        'estrategia de clientes y marketing',
+        'encargado/a de sostenibilidad',
+        'asistente de servicios',
+        'asistente de finanzas',
+        'gestor/a operacional',
+        'ejecutivo/a emprende',
+        'ejecutivo comercial',
+        'asistente de growth marketing',
+        'growth marketing',
       ];
 
-      const isExcluded = excludeKeywords.some(keyword => titleLower.includes(keyword));
+      const isExcluded = excludeKeywords.some((keyword) => titleLower.includes(keyword));
       if (isExcluded) return false;
 
       // Palabras que incluyen (tech específicos) - más precisas para Banco Estado
       const techKeywords = [
         // Ingeniería y sistemas específicos
-        'ingeniero procesos sistemas y tecnología', 'ingeniero procesos sistemas',
-        'sistemas y tecnología', 'desarrollo tec', 'gcia desarrollo tec',
+        'ingeniero procesos sistemas y tecnología',
+        'ingeniero procesos sistemas',
+        'sistemas y tecnología',
+        'desarrollo tec',
+        'gcia desarrollo tec',
 
         // Análisis de datos específicos
-        'analista de automatización y visualización de dato', 'automatización y visualización',
-        'visualización de dato', 'analista de datos', 'automatización',
+        'analista de automatización y visualización de dato',
+        'automatización y visualización',
+        'visualización de dato',
+        'analista de datos',
+        'automatización',
 
         // Seguridad específicos
-        'especialista en ciberseguridad para ecosistemas digitales', 'ciberseguridad',
-        'ecosistemas digitales', 'coordinador/a de operaciones de seguridad',
-        'operaciones de seguridad', 'seguridad informática',
+        'especialista en ciberseguridad para ecosistemas digitales',
+        'ciberseguridad',
+        'ecosistemas digitales',
+        'coordinador/a de operaciones de seguridad',
+        'operaciones de seguridad',
+        'seguridad informática',
 
         // Innovación y riesgo tech
-        'analista de riesgo e innovación', 'riesgo e innovación',
+        'analista de riesgo e innovación',
+        'riesgo e innovación',
 
         // Términos técnicos generales
-        'desarrollador', 'developer', 'programador', 'software engineer',
-        'analista de sistemas', 'técnico en computación', 'técnico en administración de redes',
-        'análisis de sistemas', 'analista programador',
+        'desarrollador',
+        'developer',
+        'programador',
+        'software engineer',
+        'analista de sistemas',
+        'técnico en computación',
+        'técnico en administración de redes',
+        'análisis de sistemas',
+        'analista programador',
 
         // Tecnologías y herramientas
-        'java', 'python', 'javascript', 'sql', 'cloud', 'aws', 'azure',
-        'machine learning', 'artificial intelligence', 'data science',
+        'java',
+        'python',
+        'javascript',
+        'sql',
+        'cloud',
+        'aws',
+        'azure',
+        'machine learning',
+        'artificial intelligence',
+        'data science',
 
         // Roles tech específicos
-        'scrum master', 'product owner', 'devops', 'qa engineer',
-        'arquitecto software', 'tech lead'
+        'scrum master',
+        'product owner',
+        'devops',
+        'qa engineer',
+        'arquitecto software',
+        'tech lead',
       ];
 
-      return techKeywords.some(keyword => fullText.includes(keyword));
+      return techKeywords.some((keyword) => fullText.includes(keyword));
     });
   }
 
@@ -264,7 +300,7 @@ class BancoEstadoScraper extends BaseScraper {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - maxAge);
 
-    return jobs.filter(job => {
+    return jobs.filter((job) => {
       if (!job.fechaPublicacion) return true; // Si no hay fecha, incluir
 
       try {
@@ -304,7 +340,7 @@ class BancoEstadoScraper extends BaseScraper {
         .trim();
 
       // Determinar modalidad de trabajo
-      const workMode = this.extractWorkMode(description + ' ' + requirements);
+      const workMode = this.extractWorkMode(`${description} ${requirements}`);
 
       return {
         fullDescription: description,
@@ -319,9 +355,8 @@ class BancoEstadoScraper extends BaseScraper {
         applications: jobDetail.candidadPostulaciones || 0,
         views: jobDetail.candidadVisualizaciones || 0,
         expirationDate: jobDetail.fechaExpiracionFormatoIngles || null,
-        location: this.extractLocation(jobDetail.ubicacion)
+        location: this.extractLocation(jobDetail.ubicacion),
       };
-
     } catch (error) {
       console.error(`Error obteniendo detalles del trabajo ${jobId}: ${error.message}`);
       return {
@@ -337,7 +372,7 @@ class BancoEstadoScraper extends BaseScraper {
         applications: 0,
         views: 0,
         expirationDate: null,
-        location: 'Chile'
+        location: 'Chile',
       };
     }
   }
@@ -347,10 +382,18 @@ class BancoEstadoScraper extends BaseScraper {
    */
   extractWorkMode(text) {
     const textLower = text.toLowerCase();
-    if (textLower.includes('remoto') || textLower.includes('home office') || textLower.includes('teletrabajo')) {
+    if (
+      textLower.includes('remoto') ||
+      textLower.includes('home office') ||
+      textLower.includes('teletrabajo')
+    ) {
       return 'Remoto';
     }
-    if (textLower.includes('híbrido') || textLower.includes('hibrido') || textLower.includes('mixto')) {
+    if (
+      textLower.includes('híbrido') ||
+      textLower.includes('hibrido') ||
+      textLower.includes('mixto')
+    ) {
       return 'Híbrido';
     }
     if (textLower.includes('presencial') || textLower.includes('oficina')) {
@@ -380,7 +423,8 @@ class BancoEstadoScraper extends BaseScraper {
 
     if (comuna && region) {
       return `${comuna}, ${region}, Chile`;
-    } else if (region) {
+    }
+    if (region) {
       return `${region}, Chile`;
     }
 
@@ -401,7 +445,8 @@ class BancoEstadoScraper extends BaseScraper {
 
       // Agregar tags específicos del contexto bancario
       const titleLower = (rawJob.nombreCargo || '').toLowerCase();
-      if (titleLower.includes('senior') || titleLower.includes('especialista')) allTags.push('senior');
+      if (titleLower.includes('senior') || titleLower.includes('especialista'))
+        allTags.push('senior');
       if (titleLower.includes('junior') || titleLower.includes('asistente')) allTags.push('junior');
       if (titleLower.includes('jefe') || titleLower.includes('líder')) allTags.push('leadership');
       if (titleLower.includes('coordinador')) allTags.push('coordination');
@@ -429,7 +474,7 @@ class BancoEstadoScraper extends BaseScraper {
         completeDescription += `## Nivel Académico\n\n${rawJob.education}\n\n`;
       }
 
-      completeDescription += `## Información Adicional\n\n`;
+      completeDescription += '## Información Adicional\n\n';
       completeDescription += `- **Modalidad:** ${rawJob.workMode}\n`;
       completeDescription += `- **Tipo de contrato:** ${rawJob.contract}\n`;
       completeDescription += `- **Vacantes:** ${rawJob.vacancies}\n`;
@@ -442,7 +487,8 @@ class BancoEstadoScraper extends BaseScraper {
         completeDescription += `- **Postulaciones:** ${rawJob.applications}\n`;
       }
 
-      completeDescription += `\n## Sobre Banco Estado\n\nBanco Estado es el banco público de Chile, líder en innovación financiera y transformación digital. Comprometido con la inclusión financiera y el desarrollo tecnológico del país.\n\n`;
+      completeDescription +=
+        '\n## Sobre Banco Estado\n\nBanco Estado es el banco público de Chile, líder en innovación financiera y transformación digital. Comprometido con la inclusión financiera y el desarrollo tecnológico del país.\n\n';
 
       return {
         id: rawJob.idOferta?.toString() || this.generateJobId(rawJob),
@@ -452,8 +498,12 @@ class BancoEstadoScraper extends BaseScraper {
         location: rawJob.location || 'Chile',
         jobType: rawJob.workMode || 'Presencial',
         department: rawJob.area || 'Tecnología',
-        publishedDate: rawJob.fechaPublicacion ? new Date(rawJob.fechaPublicacion).toISOString() : new Date().toISOString(),
-        expiresAt: rawJob.expirationDate ? new Date(rawJob.expirationDate).toISOString() : new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        publishedDate: rawJob.fechaPublicacion
+          ? new Date(rawJob.fechaPublicacion).toISOString()
+          : new Date().toISOString(),
+        expiresAt: rawJob.expirationDate
+          ? new Date(rawJob.expirationDate).toISOString()
+          : new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
         jobUrl: `${this.baseUrl}/empleos/${rawJob.idOferta}`,
         tags: [...new Set(allTags)],
         metadata: {
@@ -467,15 +517,15 @@ class BancoEstadoScraper extends BaseScraper {
           experience: rawJob.experience,
           contract: rawJob.contract,
           education: rawJob.education,
-          vacancies: rawJob.vacancies
-        }
+          vacancies: rawJob.vacancies,
+        },
       };
     } catch (error) {
       console.error(`Error procesando trabajo de Banco Estado: ${error.message}`);
       this.errors.push({
         type: 'processing_error',
         message: error.message,
-        job: rawJob
+        job: rawJob,
       });
       return null;
     }

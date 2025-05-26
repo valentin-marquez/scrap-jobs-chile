@@ -15,7 +15,7 @@ class BetterflyScraper extends BaseScraper {
       retryDelay: 2000,
       timeout: 10000,
       maxAgeDays: 7,
-      ...config
+      ...config,
     });
 
     // Configuración específica de Betterfly
@@ -42,11 +42,11 @@ class BetterflyScraper extends BaseScraper {
       // Obtener detalles de cada trabajo
       for (let i = 0; i < jobListings.length; i++) {
         const job = jobListings[i];
-        console.log(`📋 Obteniendo detalles ${i+1}/${jobListings.length}: ${job.title}`);
+        console.log(`📋 Obteniendo detalles ${i + 1}/${jobListings.length}: ${job.title}`);
 
         try {
           const details = await this.getJobDetails(job);
-          const processedJob = this.processJob({...job, ...details}, 'Betterfly');
+          const processedJob = this.processJob({ ...job, ...details }, 'Betterfly');
           if (processedJob) {
             this.jobs.push(processedJob);
           }
@@ -55,7 +55,7 @@ class BetterflyScraper extends BaseScraper {
           this.errors.push({
             type: 'job_detail_error',
             message: error.message,
-            job: job.title
+            job: job.title,
           });
         }
 
@@ -66,7 +66,6 @@ class BetterflyScraper extends BaseScraper {
       }
 
       console.log(`✅ Procesados ${this.jobs.length} trabajos de Betterfly`);
-
     } catch (error) {
       console.error(`Error en scraping de Betterfly: ${error.message}`);
       throw error;
@@ -94,13 +93,17 @@ class BetterflyScraper extends BaseScraper {
         let workMode = '';
 
         const jobInfo = $element.find('.text-md').text().trim();
-        const infoItems = jobInfo.split('·').map(item => item.trim());
+        const infoItems = jobInfo.split('·').map((item) => item.trim());
 
-        infoItems.forEach(item => {
+        infoItems.forEach((item) => {
           if (item.includes('Híbrido') || item.includes('Remoto') || item.includes('Presencial')) {
             workMode = item.replace(/[\n\t]/g, '').trim();
-          } else if (item.includes('Chile') || item.includes('México') ||
-                    item.includes('Colombia') || item.includes('Perú')) {
+          } else if (
+            item.includes('Chile') ||
+            item.includes('México') ||
+            item.includes('Colombia') ||
+            item.includes('Perú')
+          ) {
             location = item;
           } else {
             department = item;
@@ -114,7 +117,7 @@ class BetterflyScraper extends BaseScraper {
             jobUrl: fullJobUrl,
             department,
             location,
-            jobType: workMode
+            jobType: workMode,
           });
         }
       });
@@ -151,23 +154,35 @@ class BetterflyScraper extends BaseScraper {
       contentSection.find('ul').each((i, ul) => {
         const previousHeading = $(ul).prev('p').text().toLowerCase();
 
-        if (previousHeading.includes('esperamos') ||
-            previousHeading.includes('tareas') ||
-            previousHeading.includes('responsabilidades')) {
-          $(ul).find('li').each((j, li) => {
-            responsibilities.push($(li).text().trim());
-          });
-        } else if (previousHeading.includes('buscamos') ||
-                  previousHeading.includes('requisitos') ||
-                  previousHeading.includes('perfil')) {
-          $(ul).find('li').each((j, li) => {
-            requirements.push($(li).text().trim());
-          });
-        } else if (previousHeading.includes('ofrecemos') ||
-                  previousHeading.includes('beneficios')) {
-          $(ul).find('li').each((j, li) => {
-            benefits.push($(li).text().trim());
-          });
+        if (
+          previousHeading.includes('esperamos') ||
+          previousHeading.includes('tareas') ||
+          previousHeading.includes('responsabilidades')
+        ) {
+          $(ul)
+            .find('li')
+            .each((j, li) => {
+              responsibilities.push($(li).text().trim());
+            });
+        } else if (
+          previousHeading.includes('buscamos') ||
+          previousHeading.includes('requisitos') ||
+          previousHeading.includes('perfil')
+        ) {
+          $(ul)
+            .find('li')
+            .each((j, li) => {
+              requirements.push($(li).text().trim());
+            });
+        } else if (
+          previousHeading.includes('ofrecemos') ||
+          previousHeading.includes('beneficios')
+        ) {
+          $(ul)
+            .find('li')
+            .each((j, li) => {
+              benefits.push($(li).text().trim());
+            });
         }
       });
 
@@ -176,15 +191,15 @@ class BetterflyScraper extends BaseScraper {
       completeDescription += `${fullDescriptionMarkdown}\n\n`;
 
       if (responsibilities.length > 0) {
-        completeDescription += `## Responsabilidades\n\n${responsibilities.map(r => `- ${r}`).join('\n')}\n\n`;
+        completeDescription += `## Responsabilidades\n\n${responsibilities.map((r) => `- ${r}`).join('\n')}\n\n`;
       }
 
       if (requirements.length > 0) {
-        completeDescription += `## Requisitos\n\n${requirements.map(r => `- ${r}`).join('\n')}\n\n`;
+        completeDescription += `## Requisitos\n\n${requirements.map((r) => `- ${r}`).join('\n')}\n\n`;
       }
 
       if (benefits.length > 0) {
-        completeDescription += `## Beneficios\n\n${benefits.map(b => `- ${b}`).join('\n')}\n\n`;
+        completeDescription += `## Beneficios\n\n${benefits.map((b) => `- ${b}`).join('\n')}\n\n`;
       }
 
       return {
@@ -193,15 +208,14 @@ class BetterflyScraper extends BaseScraper {
         sections: {
           responsibilities,
           requirements,
-          benefits
-        }
+          benefits,
+        },
       };
-
     } catch (error) {
       console.error(`Error obteniendo detalles de ${job.title}: ${error.message}`);
       return {
         description: '',
-        sections: {}
+        sections: {},
       };
     }
   }
@@ -222,7 +236,7 @@ class BetterflyScraper extends BaseScraper {
         const allSections = [
           ...(rawJob.sections.responsibilities || []),
           ...(rawJob.sections.requirements || []),
-          ...(rawJob.sections.benefits || [])
+          ...(rawJob.sections.benefits || []),
         ];
         const sectionText = allSections.join(' ');
         sectionTags = extractTags(sectionText);
@@ -238,7 +252,8 @@ class BetterflyScraper extends BaseScraper {
       if (titleLower.includes('senior')) allTags.push('senior');
       if (titleLower.includes('junior')) allTags.push('junior');
       if (titleLower.includes('líder') || titleLower.includes('lead')) allTags.push('leadership');
-      if (titleLower.includes('manager') || titleLower.includes('gerente')) allTags.push('management');
+      if (titleLower.includes('manager') || titleLower.includes('gerente'))
+        allTags.push('management');
 
       return {
         id: this.generateJobId(rawJob),
@@ -255,18 +270,18 @@ class BetterflyScraper extends BaseScraper {
         metadata: {
           scrapedAt: new Date().toISOString(),
           scraper: this.constructor.name,
-          source: 'Betterfly Careers'
+          source: 'Betterfly Careers',
         },
         details: {
-          sections: rawJob.sections || {}
-        }
+          sections: rawJob.sections || {},
+        },
       };
     } catch (error) {
       console.error(`Error procesando trabajo de Betterfly: ${error.message}`);
       this.errors.push({
         type: 'processing_error',
         message: error.message,
-        job: rawJob
+        job: rawJob,
       });
       return null;
     }

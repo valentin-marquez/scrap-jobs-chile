@@ -10,7 +10,7 @@ module.exports = {
     parallel: false, // true para ejecución paralela
     maxConcurrent: 3,
     consolidatedFile: 'all_jobs.json',
-    statsFile: 'pipeline_stats.json'
+    statsFile: 'pipeline_stats.json',
   },
 
   // Configuración por defecto para scrapers
@@ -19,7 +19,7 @@ module.exports = {
     retryDelay: 2000,
     timeout: 10000,
     maxAgeDays: 7,
-    outputDir: './output'
+    outputDir: './output',
   },
 
   // Configuración específica por scraper
@@ -31,8 +31,8 @@ module.exports = {
       authToken: process.env.FALABELLA_TOKEN || '329E7hbFSYyGUJrFlk2DqmW6sirxjvt4T2Sh0jWReX8',
       filters: {
         locations: ['chile', 'santiago'],
-        excludeTags: ['intern'] // Excluir prácticas si no se desean
-      }
+        excludeTags: ['intern'], // Excluir prácticas si no se desean
+      },
     },
     fintual: {
       enabled: true,
@@ -41,8 +41,8 @@ module.exports = {
       filters: {
         locations: ['chile'],
         requiredTags: [], // Solo trabajos con ciertos tags
-        excludeTags: []
-      }
+        excludeTags: [],
+      },
     },
     entel: {
       enabled: false, // Deshabilitado por defecto
@@ -50,8 +50,8 @@ module.exports = {
       maxAgeDays: 5,
       filters: {
         locations: ['chile'],
-        excludeTags: []
-      }
+        excludeTags: [],
+      },
     },
     sonda: {
       enabled: false,
@@ -59,9 +59,9 @@ module.exports = {
       maxAgeDays: 5,
       filters: {
         locations: ['chile'],
-        excludeTags: []
-      }
-    }
+        excludeTags: [],
+      },
+    },
   },
 
   // Filtros globales aplicados a todos los resultados
@@ -82,7 +82,7 @@ module.exports = {
     jobTypes: [], // Ej: ['full-time', 'part-time']
 
     // Edad máxima en días (sobrescribe configuración individual)
-    maxAgeDays: null // null = usar configuración individual
+    maxAgeDays: null, // null = usar configuración individual
   },
 
   // Configuración de tags mejorada
@@ -94,20 +94,28 @@ module.exports = {
 
     // Tags personalizados específicos del mercado chileno
     customTags: [
-      'sence', 'corfo', 'startup chile', 'fintech',
-      'insurtech', 'proptech', 'edtech', 'healthtech',
-      'remote work', 'trabajo remoto', 'híbrido'
+      'sence',
+      'corfo',
+      'startup chile',
+      'fintech',
+      'insurtech',
+      'proptech',
+      'edtech',
+      'healthtech',
+      'remote work',
+      'trabajo remoto',
+      'híbrido',
     ],
 
     // Variaciones específicas para el mercado local
     localVariations: {
       'full-stack': ['fullstack', 'full stack'],
-      'frontend': ['front-end', 'front end'],
-      'backend': ['back-end', 'back end'],
+      frontend: ['front-end', 'front end'],
+      backend: ['back-end', 'back end'],
       'machine learning': ['ml', 'aprendizaje automático'],
       'data science': ['ciencia de datos'],
-      'product manager': ['product owner', 'po', 'pm']
-    }
+      'product manager': ['product owner', 'po', 'pm'],
+    },
   },
 
   // Configuración para servicios cloud (preparación futura)
@@ -117,7 +125,7 @@ module.exports = {
       enabled: false,
       accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
       apiToken: process.env.CLOUDFLARE_API_TOKEN,
-      workerName: 'job-scraper'
+      workerName: 'job-scraper',
     },
 
     // Configuración para Supabase
@@ -126,7 +134,7 @@ module.exports = {
       url: process.env.SUPABASE_URL,
       anonKey: process.env.SUPABASE_ANON_KEY,
       serviceKey: process.env.SUPABASE_SERVICE_KEY,
-      tableName: 'jobs'
+      tableName: 'jobs',
     },
 
     // Configuración para Hono backend
@@ -135,9 +143,9 @@ module.exports = {
       port: process.env.PORT || 3000,
       cors: {
         origin: ['http://localhost:3000'],
-        credentials: true
-      }
-    }
+        credentials: true,
+      },
+    },
   },
 
   // Configuración de notificaciones (preparación futura)
@@ -145,15 +153,15 @@ module.exports = {
     enabled: false,
     slack: {
       webhookUrl: process.env.SLACK_WEBHOOK_URL,
-      channel: '#job-alerts'
+      channel: '#job-alerts',
     },
     email: {
       enabled: false,
       service: 'gmail',
       user: process.env.EMAIL_USER,
       password: process.env.EMAIL_PASSWORD,
-      recipients: []
-    }
+      recipients: [],
+    },
   },
 
   // Configuración de logging
@@ -162,6 +170,6 @@ module.exports = {
     saveToFile: true,
     logFile: './output/scraping.log',
     maxLogSize: '10MB',
-    maxFiles: 5
-  }
+    maxFiles: 5,
+  },
 };

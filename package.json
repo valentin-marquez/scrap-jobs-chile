@@ -5,6 +5,7 @@
     "base-64": "^1.0.0",
     "cheerio": "^1.0.0",
     "https": "^1.0.0",
+    "puppeteer": "^24.9.0",
     "tough-cookie": "^4.1.4",
     "turndown": "^7.2.0"
   },
@@ -13,12 +14,19 @@
     "scrape:all": "node src/main.js",
     "scrape:parallel": "PARALLEL=true node src/main.js",
     "scrape:falabella": "node src/scrapers/falabella-scraper.js",
+    "scrape:desafiolatam": "node -e \"const DesafioLatamScraper = require('./src/scrapers/desafiolatam.scrap'); const scraper = new DesafioLatamScraper(); scraper.run().then(result => { console.log('Resultados:', result.jobs.length, 'trabajos'); scraper.saveJobs('desafiolatam_jobs.json'); }).catch(console.error);\"",
+    "scrape:bancochile": "node -e \"const BancoChileScraper = require('./src/scrapers/bancochile.scrap'); const scraper = new BancoChileScraper(); scraper.run().then(result => { console.log('Resultados:', result.jobs.length, 'trabajos'); scraper.saveJobs('bancochile_jobs.json'); }).catch(console.error);\"",
     "test:tags": "node -e \"const { extractTags } = require('./src/utils/common_tags'); console.log('Testing tag extraction:'); console.log(extractTags('Senior Rust developer with experience in rustic systems'));\"",
     "demo:tags": "node src/utils/tag-system-demo.js",
     "demo": "node -e \"require('./src/main.js')\"",
     "clean": "rm -rf output/*.json",
     "setup": "mkdir -p output && echo 'Output directory created'",
-
+    "lint": "biome lint src/",
+    "lint:fix": "biome lint --apply src/",
+    "format": "biome format src/",
+    "format:write": "biome format --write src/",
+    "check": "biome check src/",
+    "check:fix": "biome check --apply src/",
     "# Legacy scripts (deprecated)": "",
     "scrape:apiux": "node src/scrapers/apiuxtech.scrap.js",
     "scrape:betterfly": "node src/scrapers/betterfly.scrap.js",
@@ -27,6 +35,7 @@
     "scrape:sonda": "node src/scrapers/sona.scrap.js"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
     "nodemon": "^3.0.0"
   },
   "engines": {

@@ -13,11 +13,20 @@ console.log('\n1. 📝 NORMALIZACIÓN DE TAGS EQUIVALENTES');
 console.log('-'.repeat(40));
 
 const equivalentTags = [
-  'gcp', 'google cloud', 'Google Cloud Platform',
-  'js', 'javascript', 'JavaScript',
-  'k8s', 'kubernetes', 'Kubernetes',
-  'ts', 'typescript', 'TypeScript',
-  'react-native', 'React Native'
+  'gcp',
+  'google cloud',
+  'Google Cloud Platform',
+  'js',
+  'javascript',
+  'JavaScript',
+  'k8s',
+  'kubernetes',
+  'Kubernetes',
+  'ts',
+  'typescript',
+  'TypeScript',
+  'react-native',
+  'React Native',
 ];
 
 console.log('Tags originales:', equivalentTags);
@@ -33,7 +42,7 @@ const jobDescriptions = [
   'Desarrollador con experiencia en GCP y K8s para microservicios',
   'Frontend developer with React.js and TypeScript knowledge',
   'Buscamos experto en Google Cloud Platform y React Native',
-  'Backend engineer: Node.js, PostgreSQL, Docker, AWS'
+  'Backend engineer: Node.js, PostgreSQL, Docker, AWS',
 ];
 
 jobDescriptions.forEach((desc, index) => {
@@ -47,7 +56,7 @@ console.log('\n3. 🏷️ AGRUPACIÓN DE TAGS POR CATEGORÍAS');
 console.log('-'.repeat(40));
 
 const sampleTags = ['react', 'python', 'aws', 'postgresql', 'docker', 'jest'];
-sampleTags.forEach(tag => {
+sampleTags.forEach((tag) => {
   const group = tagSystem.getTagGroup(tag);
   const category = tagSystem.getTagCategory(tag);
   console.log(`${tag} → Categoría: ${category}, Grupo: ${group ? group.name : 'ninguno'}`);
@@ -79,10 +88,10 @@ console.log('\n6. 💡 SUGERENCIAS DE BÚSQUEDA');
 console.log('-'.repeat(40));
 
 const searchQueries = ['react', 'cloud', 'data'];
-searchQueries.forEach(query => {
+searchQueries.forEach((query) => {
   const suggestions = tagSystem.suggestTags(query, 5);
   console.log(`\nBúsqueda: "${query}"`);
-  suggestions.forEach(suggestion => {
+  suggestions.forEach((suggestion) => {
     console.log(`  → ${suggestion.tag} (${suggestion.type}, relevancia: ${suggestion.relevance})`);
   });
 });
@@ -92,9 +101,20 @@ console.log('\n7. 📈 ESTADÍSTICAS DE TAGS');
 console.log('-'.repeat(40));
 
 const allJobTags = [
-  'javascript', 'python', 'react', 'aws', 'docker',
-  'js', 'gcp', 'kubernetes', 'postgresql', 'typescript',
-  'google cloud', 'k8s', 'node.js', 'mongo'
+  'javascript',
+  'python',
+  'react',
+  'aws',
+  'docker',
+  'js',
+  'gcp',
+  'kubernetes',
+  'postgresql',
+  'typescript',
+  'google cloud',
+  'k8s',
+  'node.js',
+  'mongo',
 ];
 
 const stats = tagSystem.getTagStats(allJobTags);
@@ -125,7 +145,7 @@ const normalizedSkills = tagSystem.normalizeTags(cvSkills);
 console.log('  Skills originales:', cvSkills);
 console.log('  Skills normalizados:', normalizedSkills);
 
-console.log('\n' + '='.repeat(60));
+console.log(`\n${'='.repeat(60)}`);
 console.log('✅ Demostración completada. El sistema maneja:');
 console.log('   • Normalización automática de equivalencias');
 console.log('   • Eliminación inteligente de duplicados');
@@ -138,5 +158,5 @@ module.exports = {
   runDemo: () => {
     // Esta función puede ser llamada desde otros archivos
     console.log('Ejecutando demostración del sistema de tags...');
-  }
+  },
 };

@@ -20,6 +20,7 @@ Sistema modular de web scraping para ofertas de trabajo tecnológicas en Chile. 
 - **🔧 SONDA** - Portal tech especializado
 - **🎨 APIUX Tech** - Integración TeamTailor
 - **🏦 Banco Estado** - API simple
+- **🚀 Desafío Latam** - Portal educativo con Lever
 
 ## 📋 Requisitos
 
@@ -39,6 +40,40 @@ npm install
 # Crear directorio de salida
 npm run setup
 ```
+
+## 🔧 Desarrollo y Calidad de Código
+
+Este proyecto utiliza **Biome.js** como linter y formateador para mantener un código limpio y consistente.
+
+### Scripts de desarrollo disponibles:
+
+```bash
+# Verificar problemas de linting
+npm run lint
+
+# Corregir problemas de linting automáticamente
+npm run lint:fix
+
+# Formatear código
+npm run format
+
+# Formatear y escribir cambios
+npm run format:write
+
+# Verificar y aplicar todas las correcciones (linting + formato)
+npm run check
+
+# Aplicar correcciones automáticas
+npm run check:fix
+```
+
+### Configuración de Biome.js
+
+- **Linting**: Reglas estrictas para detectar errores y mejores prácticas
+- **Formato**: Espaciado de 2, comillas simples, punto y coma siempre
+- **Imports**: Organización automática de imports
+- **Node.js**: Protocolo `node:` para módulos built-in
+- **Optimización**: Prefiere `for...of` sobre `forEach` para mejor rendimiento
 
 ## 🚀 Uso
 

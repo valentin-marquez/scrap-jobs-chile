@@ -1,6 +1,5 @@
 const BaseScraper = require('./base-scraper');
 
-
 /**
  * Scraper para trabajos de Falabella
  * Obtiene ofertas laborales del área de Tecnología e Informática
@@ -12,22 +11,23 @@ class FalabellaScraper extends BaseScraper {
       retryDelay: 2000,
       timeout: 10000,
       maxAgeDays: 7,
-      ...config
+      ...config,
     });
 
     // Configuración específica de Falabella
     this.authToken = '329E7hbFSYyGUJrFlk2DqmW6sirxjvt4T2Sh0jWReX8';
-    this.apiUrl = 'https://ftc-hr-tama-atrc.falabella.tech/bff-sgdt-job-offer/api/ofertalaboral/filter';
+    this.apiUrl =
+      'https://ftc-hr-tama-atrc.falabella.tech/bff-sgdt-job-offer/api/ofertalaboral/filter';
     this.filters = {
-      country: ["Chile"],
-      area: ["Tecnología e Informática"],
+      country: ['Chile'],
+      area: ['Tecnología e Informática'],
       company: [],
       jobtype: [],
       tags: [],
-      search: "",
+      search: '',
       page: 1,
       perPage: 100,
-      type: "external"
+      type: 'external',
     };
   }
 
@@ -39,15 +39,15 @@ class FalabellaScraper extends BaseScraper {
       console.log('🔍 Obteniendo trabajos de Falabella...');
 
       const headers = {
-        'authorization': this.authToken,
+        authorization: this.authToken,
         'content-type': 'application/json',
-        'accept': 'application/json, text/plain, */*'
+        accept: 'application/json, text/plain, */*',
       };
 
       const response = await this.makeRequest(this.apiUrl, {
         method: 'POST',
         headers,
-        data: this.filters
+        data: this.filters,
       });
 
       if (response.status === 200 && response.data.data && response.data.data.list) {
@@ -55,17 +55,22 @@ class FalabellaScraper extends BaseScraper {
         console.log(`✅ Se obtuvieron ${rawJobs.length} trabajos de Falabella`);
 
         // Filtrar trabajos recientes
-        const recentJobs = rawJobs.filter(job => this.isWithinDays(job.date, this.config.maxAgeDays));
-        console.log(`📅 ${recentJobs.length} trabajos dentro de los últimos ${this.config.maxAgeDays} días`);
+        const recentJobs = rawJobs.filter((job) =>
+          this.isWithinDays(job.date, this.config.maxAgeDays)
+        );
+        console.log(
+          `📅 ${recentJobs.length} trabajos dentro de los últimos ${this.config.maxAgeDays} días`
+        );
 
         // Procesar cada trabajo
-        this.jobs = recentJobs.map(job => this.processJob(job, 'Falabella')).filter(job => job !== null);
+        this.jobs = recentJobs
+          .map((job) => this.processJob(job, 'Falabella'))
+          .filter((job) => job !== null);
 
         console.log(`✅ Procesados ${this.jobs.length} trabajos de Falabella`);
       } else {
         throw new Error('Respuesta inesperada de la API de Falabella');
       }
-
     } catch (error) {
       if (error.response && error.response.status === 401) {
         console.error('❌ Token de autenticación expirado o inválido');
@@ -103,7 +108,7 @@ class FalabellaScraper extends BaseScraper {
         metadata: {
           scrapedAt: new Date().toISOString(),
           scraper: this.constructor.name,
-          source: 'Falabella API'
+          source: 'Falabella API',
         },
         // Campos específicos de Falabella
         details: {
@@ -112,20 +117,20 @@ class FalabellaScraper extends BaseScraper {
             location: `${rawJob.city}, ${rawJob.state}, ${rawJob.country}`,
             department: rawJob.area || '',
             commitment: rawJob.jobtype || '',
-            workplaceType: rawJob.job_location_type || ''
+            workplaceType: rawJob.job_location_type || '',
           },
           sections: {
-            "Requisitos": rawJob.requirements || '',
-            "Proceso": rawJob.process || ''
-          }
-        }
+            Requisitos: rawJob.requirements || '',
+            Proceso: rawJob.process || '',
+          },
+        },
       };
     } catch (error) {
       console.error(`Error procesando trabajo de Falabella: ${error.message}`);
       this.errors.push({
         type: 'processing_error',
         message: error.message,
-        job: rawJob
+        job: rawJob,
       });
       return null;
     }

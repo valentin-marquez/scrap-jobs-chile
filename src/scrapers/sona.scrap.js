@@ -14,12 +14,13 @@ class SonaScraper extends BaseScraper {
       retryDelay: 2000,
       timeout: 10000,
       maxAgeDays: 7,
-      ...config
+      ...config,
     });
 
     // Configuración específica de SONDA
     this.baseUrl = 'https://carrera.sonda.com';
-    this.mainUrl = 'https://carrera.sonda.com/go/Desarrollo-de-SW/8798400/?q=&q2=&alertId=&title=&location=Chile';
+    this.mainUrl =
+      'https://carrera.sonda.com/go/Desarrollo-de-SW/8798400/?q=&q2=&alertId=&title=&location=Chile';
     this.turndownService = new TurndownService();
   }
 
@@ -37,11 +38,11 @@ class SonaScraper extends BaseScraper {
       // Obtener detalles de cada trabajo
       for (let i = 0; i < jobListings.length; i++) {
         const job = jobListings[i];
-        console.log(`📋 Obteniendo detalles ${i+1}/${jobListings.length}: ${job.title}`);
+        console.log(`📋 Obteniendo detalles ${i + 1}/${jobListings.length}: ${job.title}`);
 
         try {
           const details = await this.getJobDetails(job);
-          const processedJob = this.processJob({...job, ...details}, 'SONDA');
+          const processedJob = this.processJob({ ...job, ...details }, 'SONDA');
           if (processedJob) {
             this.jobs.push(processedJob);
           }
@@ -50,7 +51,7 @@ class SonaScraper extends BaseScraper {
           this.errors.push({
             type: 'job_detail_error',
             message: error.message,
-            job: job.title
+            job: job.title,
           });
         }
 
@@ -61,7 +62,6 @@ class SonaScraper extends BaseScraper {
       }
 
       console.log(`✅ Procesados ${this.jobs.length} trabajos de SONDA`);
-
     } catch (error) {
       console.error(`Error en scraping de SONDA: ${error.message}`);
       throw error;
@@ -92,7 +92,7 @@ class SonaScraper extends BaseScraper {
             title,
             jobUrl: link,
             location,
-            department
+            department,
           });
         }
       }
@@ -117,7 +117,9 @@ class SonaScraper extends BaseScraper {
 
       // Extraer descripción del trabajo
       const jobDescriptionHtml = $('[data-careersite-propertyid="description"]').html();
-      const jobDescription = jobDescriptionHtml ? this.turndownService.turndown(jobDescriptionHtml) : '';
+      const jobDescription = jobDescriptionHtml
+        ? this.turndownService.turndown(jobDescriptionHtml)
+        : '';
 
       // Crear descripción completa estructurada
       let completeDescription = `# ${job.title}\n\n`;
@@ -126,19 +128,19 @@ class SonaScraper extends BaseScraper {
         completeDescription += `## Descripción\n\n${jobDescription}\n\n`;
       }
 
-      completeDescription += `## Sobre la Empresa\n\nSONDA es una empresa líder en servicios de tecnología de la información en Latinoamérica, con presencia en múltiples países de la región.\n\n`;
+      completeDescription +=
+        '## Sobre la Empresa\n\nSONDA es una empresa líder en servicios de tecnología de la información en Latinoamérica, con presencia en múltiples países de la región.\n\n';
 
       return {
         jobId,
         description: completeDescription,
-        originalDescription: jobDescription
+        originalDescription: jobDescription,
       };
-
     } catch (error) {
       console.error(`Error obteniendo detalles de ${job.title}: ${error.message}`);
       return {
         description: '',
-        originalDescription: ''
+        originalDescription: '',
       };
     }
   }
@@ -163,7 +165,8 @@ class SonaScraper extends BaseScraper {
       if (titleLower.includes('senior')) allTags.push('senior');
       if (titleLower.includes('junior')) allTags.push('junior');
       if (titleLower.includes('líder') || titleLower.includes('lead')) allTags.push('leadership');
-      if (titleLower.includes('manager') || titleLower.includes('gerente')) allTags.push('management');
+      if (titleLower.includes('manager') || titleLower.includes('gerente'))
+        allTags.push('management');
 
       return {
         id: rawJob.jobId || this.generateJobId(rawJob),
@@ -180,15 +183,15 @@ class SonaScraper extends BaseScraper {
         metadata: {
           scrapedAt: new Date().toISOString(),
           scraper: this.constructor.name,
-          source: 'SONDA Careers'
-        }
+          source: 'SONDA Careers',
+        },
       };
     } catch (error) {
       console.error(`Error procesando trabajo de SONDA: ${error.message}`);
       this.errors.push({
         type: 'processing_error',
         message: error.message,
-        job: rawJob
+        job: rawJob,
       });
       return null;
     }

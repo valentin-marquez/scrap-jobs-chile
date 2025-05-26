@@ -2,7 +2,7 @@
 const BaseScraper = require('./base-scraper');
 const axios = require('axios');
 const cheerio = require('cheerio');
-const fs = require('fs');
+const fs = require('node:fs');
 const TurndownService = require('turndown');
 const { CookieJar } = require('tough-cookie');
 const { wrapper } = require('axios-cookiejar-support');
@@ -18,7 +18,7 @@ class ApiuxTechScraper extends BaseScraper {
       retryDelay: 2000,
       timeout: 10000,
       maxAgeDays: 7,
-      ...config
+      ...config,
     });
 
     // Configuración específica de APIUX Tech
@@ -28,13 +28,16 @@ class ApiuxTechScraper extends BaseScraper {
 
     // Cookie jar para manejar cookies
     this.jar = new CookieJar();
-    this.client = wrapper(axios.create({
-      jar: this.jar,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
-      },
-      timeout: 10000
-    }));
+    this.client = wrapper(
+      axios.create({
+        jar: this.jar,
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
+        },
+        timeout: 10000,
+      })
+    );
   }
 
   /**
@@ -51,11 +54,11 @@ class ApiuxTechScraper extends BaseScraper {
       // Obtener detalles de cada trabajo
       for (let i = 0; i < jobListings.length; i++) {
         const job = jobListings[i];
-        console.log(`📋 Obteniendo detalles ${i+1}/${jobListings.length}: ${job.title}`);
+        console.log(`📋 Obteniendo detalles ${i + 1}/${jobListings.length}: ${job.title}`);
 
         try {
           const details = await this.getJobDetails(job);
-          const processedJob = this.processJob({...job, ...details}, 'APIUX');
+          const processedJob = this.processJob({ ...job, ...details }, 'APIUX');
           if (processedJob) {
             this.jobs.push(processedJob);
           }
@@ -64,7 +67,7 @@ class ApiuxTechScraper extends BaseScraper {
           this.errors.push({
             type: 'job_detail_error',
             message: error.message,
-            job: job.title
+            job: job.title,
           });
         }
 
@@ -75,7 +78,6 @@ class ApiuxTechScraper extends BaseScraper {
       }
 
       console.log(`✅ Procesados ${this.jobs.length} trabajos de APIUX Tech`);
-
     } catch (error) {
       console.error(`Error en scraping de APIUX Tech: ${error.message}`);
       throw error;
@@ -112,7 +114,7 @@ class ApiuxTechScraper extends BaseScraper {
 
         const jobInfoElement = $element.find('.mt-1.text-md, div.text-md');
         const jobInfo = jobInfoElement.text().trim();
-        const infoItems = jobInfo.split('·').map(item => item.trim());
+        const infoItems = jobInfo.split('·').map((item) => item.trim());
 
         if (infoItems.length > 0) department = infoItems[0];
         if (infoItems.length > 1) location = infoItems[1];
@@ -125,7 +127,7 @@ class ApiuxTechScraper extends BaseScraper {
             jobUrl: fullJobUrl,
             department,
             location,
-            jobType: workMode
+            jobType: workMode,
           });
         }
       });
@@ -187,7 +189,7 @@ class ApiuxTechScraper extends BaseScraper {
       }
 
       // Procesar secciones para extraer listas
-      Object.keys(sections).forEach(title => {
+      Object.keys(sections).forEach((title) => {
         const sectionHtml = sections[title];
         const sectionElement = cheerio.load(sectionHtml);
         const lowercaseTitle = title.toLowerCase();
@@ -199,7 +201,11 @@ class ApiuxTechScraper extends BaseScraper {
           });
         }
 
-        if (lowercaseTitle.includes('esperamos') || lowercaseTitle.includes('requisitos') || lowercaseTitle.includes('perfil')) {
+        if (
+          lowercaseTitle.includes('esperamos') ||
+          lowercaseTitle.includes('requisitos') ||
+          lowercaseTitle.includes('perfil')
+        ) {
           sectionElement('li').each((i, li) => {
             const text = sectionElement(li).text().trim();
             if (text) requirements.push(text);
@@ -218,15 +224,15 @@ class ApiuxTechScraper extends BaseScraper {
       let completeDescription = `# ${fullTitle || job.title}\n\n`;
 
       if (functions.length > 0) {
-        completeDescription += `## Funciones\n\n${functions.map(f => `- ${f}`).join('\n')}\n\n`;
+        completeDescription += `## Funciones\n\n${functions.map((f) => `- ${f}`).join('\n')}\n\n`;
       }
 
       if (requirements.length > 0) {
-        completeDescription += `## Requisitos\n\n${requirements.map(r => `- ${r}`).join('\n')}\n\n`;
+        completeDescription += `## Requisitos\n\n${requirements.map((r) => `- ${r}`).join('\n')}\n\n`;
       }
 
       if (benefits.length > 0) {
-        completeDescription += `## Beneficios\n\n${benefits.map(b => `- ${b}`).join('\n')}\n\n`;
+        completeDescription += `## Beneficios\n\n${benefits.map((b) => `- ${b}`).join('\n')}\n\n`;
       }
 
       // Si no hay secciones específicas, usar la descripción completa
@@ -240,17 +246,16 @@ class ApiuxTechScraper extends BaseScraper {
         sections: {
           functions,
           requirements,
-          benefits
+          benefits,
         },
-        originalDescription: fullDescriptionMarkdown
+        originalDescription: fullDescriptionMarkdown,
       };
-
     } catch (error) {
       console.error(`Error obteniendo detalles de ${job.title}: ${error.message}`);
       return {
         description: '',
         sections: {},
-        originalDescription: ''
+        originalDescription: '',
       };
     }
   }
@@ -271,7 +276,7 @@ class ApiuxTechScraper extends BaseScraper {
         const allSections = [
           ...(rawJob.sections.functions || []),
           ...(rawJob.sections.requirements || []),
-          ...(rawJob.sections.benefits || [])
+          ...(rawJob.sections.benefits || []),
         ];
         const sectionText = allSections.join(' ');
         sectionTags = extractTags(sectionText);
@@ -284,10 +289,18 @@ class ApiuxTechScraper extends BaseScraper {
       if (titleLower.includes('junior')) allTags.push('junior');
       if (titleLower.includes('senior')) allTags.push('senior');
       if (titleLower.includes('full') && titleLower.includes('stack')) allTags.push('fullstack');
-      if (titleLower.includes('frontend') || titleLower.includes('front-end') || titleLower.includes('front end')) {
+      if (
+        titleLower.includes('frontend') ||
+        titleLower.includes('front-end') ||
+        titleLower.includes('front end')
+      ) {
         allTags.push('frontend');
       }
-      if (titleLower.includes('backend') || titleLower.includes('back-end') || titleLower.includes('back end')) {
+      if (
+        titleLower.includes('backend') ||
+        titleLower.includes('back-end') ||
+        titleLower.includes('back end')
+      ) {
         allTags.push('backend');
       }
 
@@ -306,18 +319,18 @@ class ApiuxTechScraper extends BaseScraper {
         metadata: {
           scrapedAt: new Date().toISOString(),
           scraper: this.constructor.name,
-          source: 'APIUX Tech TeamTailor'
+          source: 'APIUX Tech TeamTailor',
         },
         details: {
-          sections: rawJob.sections || {}
-        }
+          sections: rawJob.sections || {},
+        },
       };
     } catch (error) {
       console.error(`Error procesando trabajo de APIUX Tech: ${error.message}`);
       this.errors.push({
         type: 'processing_error',
         message: error.message,
-        job: rawJob
+        job: rawJob,
       });
       return null;
     }

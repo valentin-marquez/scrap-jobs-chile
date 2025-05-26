@@ -1,13 +1,13 @@
-// Fintual Careers Web Scraper
+// Desafío Latam Careers Web Scraper
 const BaseScraper = require('./base-scraper');
 const cheerio = require('cheerio');
 const TurndownService = require('turndown');
 
 /**
- * Scraper para trabajos de Fintual
- * Obtiene ofertas laborales desde múltiples páginas de Lever
+ * Scraper para trabajos de Desafío Latam
+ * Obtiene ofertas laborales desde Lever
  */
-class FintualScraper extends BaseScraper {
+class DesafioLatamScraper extends BaseScraper {
   constructor(config = {}) {
     super({
       maxRetries: 3,
@@ -17,15 +17,8 @@ class FintualScraper extends BaseScraper {
       ...config,
     });
 
-    // Configuración específica de Fintual
-    this.urls = [
-      'https://jobs.lever.co/fintual?location=Chile&team=Producto',
-      'https://jobs.lever.co/fintual?location=Chile&team=Devs',
-      'https://jobs.lever.co/fintual?location=Chile&team=Ops',
-      'https://jobs.lever.co/fintual?location=Gran%20Santiago%2C%20Regi%C3%B3n%20Metropolitana%20de%20Santiago&team=Producto',
-      'https://jobs.lever.co/fintual?location=Gran%20Santiago%2C%20Regi%C3%B3n%20Metropolitana%20de%20Santiago&team=Devs',
-      'https://jobs.lever.co/fintual?location=Gran%20Santiago%2C%20Regi%C3%B3n%20Metropolitana%20de%20Santiago&team=Ops',
-    ];
+    // Configuración específica de Desafío Latam
+    this.urls = ['https://jobs.lever.co/desafiolatam'];
 
     this.baseUrl = 'https://jobs.lever.co';
     this.turndownService = new TurndownService();
@@ -37,7 +30,7 @@ class FintualScraper extends BaseScraper {
    */
   async scrape() {
     try {
-      console.log('🔍 Obteniendo trabajos de Fintual...');
+      console.log('🔍 Obteniendo trabajos de Desafío Latam...');
 
       const jobListings = [];
 
@@ -58,7 +51,7 @@ class FintualScraper extends BaseScraper {
 
         try {
           const details = await this.scrapeJobDetails(job);
-          const processedJob = this.processJob({ ...job, ...details }, 'Fintual');
+          const processedJob = this.processJob({ ...job, ...details }, 'Desafío Latam');
           if (processedJob) {
             this.jobs.push(processedJob);
           }
@@ -77,9 +70,9 @@ class FintualScraper extends BaseScraper {
         }
       }
 
-      console.log(`✅ Procesados ${this.jobs.length} trabajos de Fintual`);
+      console.log(`✅ Procesados ${this.jobs.length} trabajos de Desafío Latam`);
     } catch (error) {
-      console.error(`Error en scraping de Fintual: ${error.message}`);
+      console.error(`Error en scraping de Desafío Latam: ${error.message}`);
       throw error;
     }
   }
@@ -97,8 +90,13 @@ class FintualScraper extends BaseScraper {
       console.log(`📝 Encontrados ${postingGroups.length} grupos de trabajos`);
 
       postingGroups.each((groupIndex, groupElement) => {
+        // Obtener la categoría del grupo
+        const largeCategory = $(groupElement).find('.large-category-header').text().trim();
         const category = $(groupElement).find('.posting-category-title').text().trim();
+        const departmentName = largeCategory || category;
+
         const postings = $(groupElement).find('.posting');
+        console.log(`  📂 Departamento "${departmentName}": ${postings.length} trabajos`);
 
         postings.each((postingIndex, postingElement) => {
           const postingId = $(postingElement).attr('data-qa-posting-id');
@@ -111,30 +109,40 @@ class FintualScraper extends BaseScraper {
           const title = $(postingElement).find('[data-qa="posting-name"]').text().trim();
           const jobUrl = $(postingElement).find('.posting-title').attr('href');
 
-          // Extraer ubicación y equipo
-          const categories = $(postingElement).find('.posting-categories .posting-category');
+          // Extraer información de las categorías
+          const categories = $(postingElement).find('.posting-categories span');
+          let workplaceType = '';
+          let commitment = '';
           let location = '';
-          let team = '';
 
           categories.each((i, catElement) => {
             const categoryText = $(catElement).text().trim();
-            if ($(catElement).hasClass('sort-by-location')) {
+            const categoryClass = $(catElement).attr('class') || '';
+
+            if (categoryClass.includes('workplaceTypes')) {
+              workplaceType = categoryText.replace(/[^\w\s]/g, '').trim(); // Remover caracteres especiales
+            } else if (categoryClass.includes('commitment')) {
+              commitment = categoryText;
+            } else if (categoryClass.includes('location')) {
               location = categoryText;
-            } else if ($(catElement).hasClass('sort-by-team')) {
-              team = categoryText;
             }
           });
 
-          jobs.push({
+          const job = {
             id: postingId,
             title,
             jobUrl,
-            location,
-            team,
-            category,
-          });
+            location: location || 'Chile',
+            department: departmentName,
+            workplaceType,
+            commitment,
+            category: departmentName,
+          };
 
+          jobs.push(job);
           this.processedJobs.set(postingId, true);
+
+          console.log(`    ✓ ${title} - ${location} (${workplaceType})`);
         });
       });
 
@@ -156,20 +164,20 @@ class FintualScraper extends BaseScraper {
       // Extraer información del headline
       const headline = $('.posting-headline').text().trim();
 
-      // Extraer categorías
+      // Extraer categorías detalladas
       const categories = {};
       $('.posting-categories .posting-category').each((i, element) => {
         const categoryClass = $(element).attr('class');
         const categoryText = $(element).text().trim();
 
-        if (categoryClass.includes('location')) {
+        if (categoryClass?.includes('location')) {
           categories.location = categoryText;
-        } else if (categoryClass.includes('department')) {
+        } else if (categoryClass?.includes('department')) {
           categories.department = categoryText.replace('/', '').trim();
-        } else if (categoryClass.includes('commitment')) {
+        } else if (categoryClass?.includes('commitment')) {
           categories.commitment = categoryText.replace('/', '').trim();
-        } else if (categoryClass.includes('workplaceTypes')) {
-          categories.workplaceType = categoryText;
+        } else if (categoryClass?.includes('workplaceTypes')) {
+          categories.workplaceType = categoryText.replace(/[^\w\s]/g, '').trim();
         }
       });
 
@@ -198,27 +206,41 @@ class FintualScraper extends BaseScraper {
       // Crear descripción completa
       let completeDescription = `# ${job.title}\n\n## Descripción\n\n${jobDescriptionMarkdown}\n\n`;
 
-      if (sections.Requisitos) {
-        completeDescription += `## Requisitos\n\n${sections.Requisitos}\n\n`;
+      // Agregar secciones comunes de Desafío Latam
+      if (sections.Requisitos || sections['Requisitos mínimos']) {
+        completeDescription += `## Requisitos\n\n${sections.Requisitos || sections['Requisitos mínimos']}\n\n`;
       }
 
-      if (sections['Qué harás?']) {
-        completeDescription += `## Responsabilidades\n\n${sections['Qué harás?']}\n\n`;
+      if (sections['Funciones principales'] || sections.Responsabilidades) {
+        completeDescription += `## Funciones principales\n\n${sections['Funciones principales'] || sections.Responsabilidades}\n\n`;
       }
 
-      // Agregar otras secciones
+      if (sections['Qué ofrecemos'] || sections.Beneficios) {
+        completeDescription += `## Qué ofrecemos\n\n${sections['Qué ofrecemos'] || sections.Beneficios}\n\n`;
+      }
+
+      // Agregar otras secciones no procesadas
       for (const [title, content] of Object.entries(sections)) {
-        if (title !== 'Requisitos' && title !== 'Qué harás?') {
+        if (
+          ![
+            'Requisitos',
+            'Requisitos mínimos',
+            'Funciones principales',
+            'Responsabilidades',
+            'Qué ofrecemos',
+            'Beneficios',
+          ].includes(title)
+        ) {
           completeDescription += `## ${title}\n\n${content}\n\n`;
         }
       }
 
       if (closingDescriptionMarkdown) {
-        completeDescription += `## Beneficios\n\n${closingDescriptionMarkdown}\n\n`;
+        completeDescription += `## Información adicional\n\n${closingDescriptionMarkdown}\n\n`;
       }
 
       completeDescription +=
-        '## Sobre la Empresa\n\nFintual es una fintech que permite a cualquier persona invertir de forma simple y transparente. Nacimos con la idea de que cualquiera, sin importar el dinero que tenga, pueda invertir bien sus ahorros y hacer crecer su patrimonio.\n\n';
+        '## Sobre la Empresa\n\nDesafío Latam es una institución educativa líder en Latinoamérica especializada en tecnología y transformación digital. Ofrecemos programas de capacitación en áreas como Data Science, Desarrollo Web, UX/UI y más, con el objetivo de formar profesionales preparados para los desafíos del futuro digital.\n\n';
 
       return {
         description: completeDescription,
@@ -234,7 +256,7 @@ class FintualScraper extends BaseScraper {
   }
 
   /**
-   * Procesar trabajo específico de Fintual
+   * Procesar trabajo específico de Desafío Latam
    */
   processJob(rawJob, companyName) {
     try {
@@ -252,16 +274,52 @@ class FintualScraper extends BaseScraper {
 
       const allTags = [...new Set([...titleTags, ...descriptionTags, ...sectionTags])];
 
-      // Agregar tags específicos basados en el título
+      // Agregar tags específicos basados en el título y contexto de Desafío Latam
       const titleLower = rawJob.title.toLowerCase();
-      if (titleLower.includes('intern') || titleLower.includes('práctica')) {
-        allTags.push('intern', 'internship', 'práctica');
-      }
-      if (titleLower.includes('senior')) allTags.push('senior');
+
+      // Tags de nivel
+      if (titleLower.includes('senior') || titleLower.includes('líder'))
+        allTags.push('senior', 'leadership');
       if (titleLower.includes('junior')) allTags.push('junior');
-      if (titleLower.includes('líder') || titleLower.includes('lead')) allTags.push('leadership');
-      if (titleLower.includes('manager') || titleLower.includes('gerente'))
-        allTags.push('management');
+
+      // Tags de modalidad
+      if (titleLower.includes('remoto') || rawJob.workplaceType?.toLowerCase().includes('remote')) {
+        allTags.push('remote', 'trabajo-remoto');
+      }
+      if (
+        titleLower.includes('presencial') ||
+        rawJob.workplaceType?.toLowerCase().includes('on-site')
+      ) {
+        allTags.push('presencial', 'on-site');
+      }
+      if (
+        titleLower.includes('híbrido') ||
+        rawJob.workplaceType?.toLowerCase().includes('hybrid')
+      ) {
+        allTags.push('hybrid', 'híbrido');
+      }
+
+      // Tags específicos de educación/tecnología
+      if (titleLower.includes('docente') || titleLower.includes('profesor')) {
+        allTags.push('docente', 'educación', 'profesor');
+      }
+      if (titleLower.includes('territorial') || titleLower.includes('territorio')) {
+        allTags.push('territorial', 'gestión-territorial');
+      }
+      if (titleLower.includes('proyecto')) {
+        allTags.push('gestión-proyectos', 'project-management');
+      }
+      if (titleLower.includes('backup')) {
+        allTags.push('backup', 'suplente');
+      }
+
+      // Tags de áreas específicas
+      if (titleLower.includes('talento digital')) {
+        allTags.push('talento-digital', 'capacitación-digital');
+      }
+      if (titleLower.includes('seguridad') && titleLower.includes('redes')) {
+        allTags.push('cybersecurity', 'network-security', 'seguridad-informatica');
+      }
 
       return {
         id: rawJob.id,
@@ -269,8 +327,8 @@ class FintualScraper extends BaseScraper {
         description: rawJob.description || '',
         company: companyName,
         location: rawJob.location || 'Chile',
-        jobType: rawJob.categories?.workplaceType || 'Full-time',
-        department: rawJob.categories?.department || rawJob.category || rawJob.team || '',
+        jobType: this.normalizeJobType(rawJob.commitment, rawJob.workplaceType),
+        department: rawJob.department || rawJob.category || '',
         publishedDate: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         jobUrl: rawJob.jobUrl,
@@ -278,17 +336,19 @@ class FintualScraper extends BaseScraper {
         metadata: {
           scrapedAt: new Date().toISOString(),
           scraper: this.constructor.name,
-          source: 'Fintual Lever',
+          source: 'Desafío Latam Lever',
         },
         details: {
           headline: rawJob.headline,
           categories: rawJob.categories || {},
           sections: rawJob.sections || {},
           closingDescription: rawJob.closingDescription || '',
+          workplaceType: rawJob.workplaceType,
+          commitment: rawJob.commitment,
         },
       };
     } catch (error) {
-      console.error(`Error procesando trabajo de Fintual: ${error.message}`);
+      console.error(`Error procesando trabajo de Desafío Latam: ${error.message}`);
       this.errors.push({
         type: 'processing_error',
         message: error.message,
@@ -297,6 +357,35 @@ class FintualScraper extends BaseScraper {
       return null;
     }
   }
+
+  /**
+   * Normalizar el tipo de trabajo basado en commitment y workplaceType
+   */
+  normalizeJobType(commitment, workplaceType) {
+    const parts = [];
+
+    if (commitment) {
+      if (commitment.toLowerCase().includes('honorarios')) {
+        parts.push('Freelance');
+      } else if (commitment.toLowerCase().includes('presencial')) {
+        parts.push('Presencial');
+      } else {
+        parts.push(commitment);
+      }
+    }
+
+    if (workplaceType) {
+      if (workplaceType.toLowerCase().includes('remote')) {
+        parts.push('Remoto');
+      } else if (workplaceType.toLowerCase().includes('hybrid')) {
+        parts.push('Híbrido');
+      } else if (workplaceType.toLowerCase().includes('on-site')) {
+        parts.push('Presencial');
+      }
+    }
+
+    return parts.length > 0 ? parts.join(' - ') : 'Full-time';
+  }
 }
 
-module.exports = FintualScraper;
+module.exports = DesafioLatamScraper;
