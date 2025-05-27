@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const TurndownService = require('turndown');
 const { CookieJar } = require('tough-cookie');
 const { wrapper } = require('axios-cookiejar-support');
+const { ContextParser } = require('jsonld-context-parser');
 
 /**
  * Scraper para trabajos de APIUX Tech
@@ -25,6 +26,7 @@ class ApiuxTechScraper extends BaseScraper {
     this.baseUrl = 'https://apiuxtech.na.teamtailor.com';
     this.jobsUrl = `${this.baseUrl}/jobs`;
     this.turndownService = new TurndownService();
+    this.contextParser = new ContextParser();
 
     // Cookie jar para manejar cookies
     this.jar = new CookieJar();
@@ -41,80 +43,135 @@ class ApiuxTechScraper extends BaseScraper {
   }
 
   /**
-   * Extraer datos JSON-LD de la página de trabajo
+   * Limpiar texto de caracteres problemáticos de manera más robusta
    */
-  extractJsonLd($) {
-    let jsonText = '';
+  cleanJsonText(text) {
+    // Remover BOM si existe
+    text = text.replace(/^\uFEFF/, '');
+    
+    // Estrategia más agresiva para limpiar caracteres problemáticos
+    // Remover caracteres de control ASCII (0-31) excepto espacios permitidos
+    text = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    
+    // Limpiar caracteres Unicode problemáticos adicionales
+    text = text.replace(/[\u0080-\u009F]/g, ''); // Caracteres de control C1
+    text = text.replace(/[\u200B-\u200D\uFEFF]/g, ''); // Zero-width spaces y BOM
+    
+    // Normalizar espacios en blanco
+    text = text.replace(/\s+/g, ' ');
+    
+    // Escapar caracteres que pueden causar problemas en JSON
+    text = text.replace(/\n/g, '\\n');
+    text = text.replace(/\r/g, '\\r');
+    text = text.replace(/\t/g, '\\t');
+    
+    return text.trim();
+  }
+
+  /**
+   * Extraer datos JSON-LD de la página de trabajo usando jsonld-context-parser
+   */
+  async extractJsonLd($) {
     try {
       const jsonLdScript = $('script[type="application/ld+json"]').first();
-      if (jsonLdScript.length > 0) {
-        jsonText = jsonLdScript.html().trim();
-        
-        // Limpiar caracteres problemáticos de manera más agresiva
-        jsonText = jsonText
-          .replace(/^\s*[\r\n\t\f\v]+/, '') // Remover whitespace al inicio
-          .replace(/[\r\n\t\f\v]+\s*$/, '') // Remover whitespace al final
-          .replace(/\r\n/g, '\\n')
-          .replace(/\n/g, '\\n')
-          .replace(/\r/g, '\\r')
-          .replace(/\t/g, '\\t')
-          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remover caracteres de control
-          .replace(/\\n\s*\\n/g, '\\n') // Remover dobles saltos de línea
-          .replace(/^\uFEFF/, '') // Remover BOM si existe
-          .trim();
-        
-        // Intentar encontrar el inicio real del JSON si hay caracteres extra
-        const jsonStart = jsonText.indexOf('{');
-        const jsonEnd = jsonText.lastIndexOf('}');
-        
-        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-          jsonText = jsonText.substring(jsonStart, jsonEnd + 1);
-        }
-        
-        console.log('🔍 JSON-LD encontrado, intentando parsear...');
-        console.log('📝 Primeros 100 caracteres:', jsonText.substring(0, 100));
-        
-        // El problema parece ser que los \n no están siendo interpretados correctamente
-        // Vamos a intentar un enfoque diferente: usar el contenido crudo sin procesar caracteres de escape
-        let rawJsonText = jsonLdScript.html().trim();
-        
-        // Remover solo los caracteres de control problemáticos pero mantener saltos de línea reales
-        rawJsonText = rawJsonText
-          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remover caracteres de control
-          .replace(/^\uFEFF/, '') // Remover BOM si existe
-          .trim();
-        
-        // Buscar el JSON válido dentro del contenido
-        const rawJsonStart = rawJsonText.indexOf('{');
-        const rawJsonEnd = rawJsonText.lastIndexOf('}');
-        
-        if (rawJsonStart !== -1 && rawJsonEnd !== -1 && rawJsonEnd > rawJsonStart) {
-          rawJsonText = rawJsonText.substring(rawJsonStart, rawJsonEnd + 1);
-        }
-        
-        console.log('🔧 Intentando con contenido crudo...');
-        const jsonData = JSON.parse(rawJsonText);
-        
-        // Validar que sea un JobPosting
-        if (jsonData['@type'] === 'JobPosting') {
-          console.log('✅ JSON-LD válido extraído:', jsonData.title);
+      if (jsonLdScript.length === 0) {
+        console.log('⚠️ No se encontró script JSON-LD');
+        return null;
+      }
+
+      let jsonText = jsonLdScript.html().trim();
+      
+      console.log('🔍 JSON-LD encontrado, procesando con jsonld-context-parser...');
+      console.log('📝 Primeros 100 caracteres:', jsonText.substring(0, 100));
+
+      // Limpiar caracteres problemáticos
+      jsonText = this.cleanJsonText(jsonText);
+
+      // Buscar el JSON válido dentro del contenido
+      const jsonStart = jsonText.indexOf('{');
+      const jsonEnd = jsonText.lastIndexOf('}');
+      
+      if (jsonStart === -1 || jsonEnd === -1 || jsonEnd <= jsonStart) {
+        console.log('❌ No se encontraron delimitadores JSON válidos');
+        return null;
+      }
+
+      jsonText = jsonText.substring(jsonStart, jsonEnd + 1);
+
+      // Parsear el JSON directamente primero
+      let jsonData;
+      try {
+        jsonData = JSON.parse(jsonText);
+      } catch (parseError) {
+        console.log('❌ Error parseando JSON básico:', parseError.message);
+        return null;
+      }
+
+      // Verificar que sea un JobPosting
+      if (!jsonData || jsonData['@type'] !== 'JobPosting') {
+        console.log('⚠️ El JSON-LD no es un JobPosting válido');
+        return null;
+      }
+
+      // Si tiene contexto, normalizarlo con jsonld-context-parser
+      if (jsonData['@context']) {
+        try {
+          console.log('🔧 Normalizando contexto JSON-LD...');
+          const normalizedContext = await this.contextParser.parse(jsonData['@context']);
+          
+          // Expandir términos clave usando el contexto normalizado
+          const expandedData = {};
+          
+          for (const [key, value] of Object.entries(jsonData)) {
+            if (key === '@context') continue;
+            
+            try {
+              // Intentar expandir el término
+              const expandedKey = normalizedContext.expandTerm(key, true);
+              expandedData[expandedKey || key] = value;
+            } catch (expandError) {
+              // Si no se puede expandir, usar la clave original
+              expandedData[key] = value;
+            }
+          }
+          
+          console.log('✅ JSON-LD normalizado exitosamente');
+          
           return {
-            title: jsonData.title,
-            description: jsonData.description,
-            datePosted: jsonData.datePosted,
-            employmentType: jsonData.employmentType,
-            hiringOrganization: jsonData.hiringOrganization,
-            jobLocation: jsonData.jobLocation,
-            validThrough: jsonData.validThrough,
-            identifier: jsonData.identifier,
+            title: expandedData.title || expandedData.name || jsonData.title,
+            description: expandedData.description || jsonData.description,
+            datePosted: expandedData.datePosted || jsonData.datePosted,
+            employmentType: expandedData.employmentType || jsonData.employmentType,
+            hiringOrganization: expandedData.hiringOrganization || jsonData.hiringOrganization,
+            jobLocation: expandedData.jobLocation || jsonData.jobLocation,
+            validThrough: expandedData.validThrough || jsonData.validThrough,
+            identifier: expandedData.identifier || jsonData.identifier,
+            originalData: jsonData,
+            normalizedData: expandedData,
           };
+        } catch (contextError) {
+          console.log('⚠️ Error normalizando contexto, usando datos originales:', contextError.message);
         }
       }
+
+      // Si no hay contexto o falló la normalización, usar los datos originales
+      console.log('✅ JSON-LD básico extraído:', jsonData.title);
+      return {
+        title: jsonData.title,
+        description: jsonData.description,
+        datePosted: jsonData.datePosted,
+        employmentType: jsonData.employmentType,
+        hiringOrganization: jsonData.hiringOrganization,
+        jobLocation: jsonData.jobLocation,
+        validThrough: jsonData.validThrough,
+        identifier: jsonData.identifier,
+        originalData: jsonData,
+      };
+
     } catch (error) {
-      console.log('❌ No se pudo extraer JSON-LD:', error.message.substring(0, 100));
-      console.log('🔍 Contenido problemático (primeros 50 chars):', jsonText?.substring(0, 50));
+      console.log('❌ Error general extrayendo JSON-LD:', error.message);
+      return null;
     }
-    return null;
   }
 
   /**
@@ -242,7 +299,7 @@ class ApiuxTechScraper extends BaseScraper {
       let fullDescriptionMarkdown = '';
 
       // Usar descripción de JSON-LD si está disponible y es más completa
-      if (jsonLdData && jsonLdData.description) {
+      if (jsonLdData?.description) {
         // Limpiar HTML entities y convertir a markdown
         const cleanDescription = jsonLdData.description
           .replace(/&lt;/g, '<')
