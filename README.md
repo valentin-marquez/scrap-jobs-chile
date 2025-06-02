@@ -1,6 +1,6 @@
 # 🇨🇱 Scrap Jobs Chile
 
-Sistema modular de web scraping para ofertas de trabajo tecnológicas en Chile. Automatiza la recolección de oportunidades laborales desde múltiples empresas chilenas del sector tech.
+Sistema modular de web scraping para ofertas de trabajo tecnológicas en Chile. Automatiza la recolección de oportunidades laborales desde múltiples empresas chilenas del sector tech con **salida simple en archivos JSON**.
 
 ## 🚀 Características
 
@@ -10,6 +10,8 @@ Sistema modular de web scraping para ofertas de trabajo tecnológicas en Chile. 
 - **Ejecución Paralela**: Soporte para scraping concurrente
 - **Detección de Duplicados**: Eliminación automática de ofertas repetidas
 - **Estadísticas Detalladas**: Análisis completo de los datos recolectados
+- **Sin Base de Datos**: Todo se guarda en archivos JSON simples
+- **Zero Config**: Funciona inmediatamente sin configuraciones complejas
 
 ## 🏢 Empresas Soportadas
 
@@ -21,11 +23,11 @@ Sistema modular de web scraping para ofertas de trabajo tecnológicas en Chile. 
 - **🎨 APIUX Tech** - Integración TeamTailor
 - **🏦 Banco Estado** - API simple
 - **🚀 Desafío Latam** - Portal educativo con Lever
+- **🌟 Accenture** - Portal de carreras multinacional
 
 ## 📋 Requisitos
 
-- Node.js >= 14.0.0
-- npm o yarn
+- **Bun** >= 1.0.0 (recomendado) o Node.js >= 14.0.0
 
 ## 🛠️ Instalación
 
@@ -34,88 +36,63 @@ Sistema modular de web scraping para ofertas de trabajo tecnológicas en Chile. 
 git clone https://github.com/valentin-marquez/scrap-jobs-chile.git
 cd scrap-jobs-chile
 
-# Instalar dependencias
+# Instalar dependencias con Bun (recomendado)
+bun install
+
+# O con npm si prefieres
 npm install
 
 # Crear directorio de salida
-npm run setup
+bun run setup
 ```
-
-## 🔧 Desarrollo y Calidad de Código
-
-Este proyecto utiliza **Biome.js** como linter y formateador para mantener un código limpio y consistente.
-
-### Scripts de desarrollo disponibles:
-
-```bash
-# Verificar problemas de linting
-npm run lint
-
-# Corregir problemas de linting automáticamente
-npm run lint:fix
-
-# Formatear código
-npm run format
-
-# Formatear y escribir cambios
-npm run format:write
-
-# Verificar y aplicar todas las correcciones (linting + formato)
-npm run check
-
-# Aplicar correcciones automáticas
-npm run check:fix
-```
-
-### Configuración de Biome.js
-
-- **Linting**: Reglas estrictas para detectar errores y mejores prácticas
-- **Formato**: Espaciado de 2, comillas simples, punto y coma siempre
-- **Imports**: Organización automática de imports
-- **Node.js**: Protocolo `node:` para módulos built-in
-- **Optimización**: Prefiere `for...of` sobre `forEach` para mejor rendimiento
 
 ## 🚀 Uso
 
 ### Ejecutar todos los scrapers
 
 ```bash
-# Modo secuencial (recomendado)
-npm start
+# Ejecutar pipeline completo (modo secuencial recomendado)
+bun start
 
 # Modo paralelo (más rápido, pero cuidado con rate limits)
-npm run scrape:parallel
+bun run scrape:parallel
 ```
 
 ### Ejecutar scrapers individuales
 
 ```bash
-# Scraper específico (legacy)
-npm run scrape:falabella
-npm run scrape:fintual
-npm run scrape:entel
+# Scraper específico
+bun run scrape:accenture
+bun run scrape:falabella
+bun run scrape:bancochile
+bun run scrape:desafiolatam
 ```
 
 ### Scripts útiles
 
 ```bash
 # Limpiar archivos de salida
-npm run clean
+bun run clean
 
 # Probar sistema de tags
-npm run test:tags
+bun run test:tags
 
 # Demostración del sistema de tags
-npm run demo:tags
+bun run demo:tags
 ```
 
 ## 📊 Resultados
 
-Los datos se guardan en el directorio `output/`:
+Los datos se guardan automáticamente en el directorio `output/`:
 
-- `all_jobs.json` - Todas las ofertas consolidadas
-- `pipeline_stats.json` - Estadísticas detalladas
-- Archivos individuales por scraper
+```
+output/
+├── all_jobs.json           # 📄 Todas las ofertas consolidadas
+├── pipeline_stats.json     # 📊 Estadísticas detalladas del scraping
+├── accenture_jobs.json     # 🌟 Solo trabajos de Accenture
+├── falabella_jobs.json     # 🛒 Solo trabajos de Falabella
+└── ...                     # Otros archivos por empresa
+```
 
 ### Formato de datos
 
@@ -123,50 +100,52 @@ Los datos se guardan en el directorio `output/`:
 {
   "id": "unique-job-id",
   "title": "Desarrollador Full Stack",
-  "company": "Empresa Tech",
+  "company": "Accenture",
   "location": "Santiago, Chile",
-  "description": "Descripción del trabajo...",
-  "url": "https://empresa.com/job/123",
-  "tags": ["javascript", "react", "node.js"],
-  "department": "Tecnología",
-  "jobType": "Tiempo completo",
-  "postedDate": "2025-05-25",
+  "description": "# Desarrollador Full Stack\n\n## Descripción del Puesto...",
+  "jobUrl": "https://accenture.com/careers/job/123",
+  "tags": ["javascript", "react", "nodejs", "consulting", "technology"],
+  "department": "Technology",
+  "jobType": "Full-time",
+  "publishedDate": "2025-06-02T10:00:00Z",
   "metadata": {
-    "source": "falabella",
-    "scrapedAt": "2025-05-25T10:00:00Z"
+    "source": "Accenture Careers API",
+    "scraper": "AccentureScraper",
+    "scrapedAt": "2025-06-02T15:30:00Z"
   }
 }
 ```
 
-## ⚙️ Configuración
+## ⚙️ Configuración Simple
 
 ### Filtros Globales
 
-Puedes modificar los filtros en `src/main.js`:
+Puedes modificar los filtros directamente en `src/main.js`:
 
 ```javascript
 const globalFilters = {
-  requiredTags: ['javascript', 'python'], // Solo trabajos con estos tags
-  excludeTags: ['senior'], // Excluir trabajos senior
-  locations: ['chile', 'santiago'], // Solo ubicaciones específicas
-  companies: [], // Filtrar por empresas
-  maxAge: 7 // Solo trabajos de los últimos N días
+  requiredTags: [], // Solo trabajos con estos tags: ['javascript', 'python']
+  excludeTags: [],  // Excluir trabajos: ['senior', 'lead']
+  locations: ['chile'], // Solo ubicaciones: ['chile', 'santiago']
+  maxAge: 7 // Solo trabajos de los últimos 7 días
 };
 ```
 
-### Configuración del Pipeline
+### Habilitar/Deshabilitar Scrapers
 
 ```javascript
-const pipeline = new ScrapingPipeline({
-  outputDir: './output',
-  parallel: false, // true para ejecución paralela
-  maxConcurrent: 2, // Scrapers concurrentes en modo paralelo
-  consolidatedFile: 'all_jobs.json',
-  statsFile: 'pipeline_stats.json'
+// En src/main.js, cambia enabled: true/false
+pipeline.registerScraper('accenture', accentureScraper, {
+  enabled: true,  // ← Cambiar a false para deshabilitar
+  priority: 10,
+  filters: {
+    locations: ['chile', 'santiago'],
+    excludeTags: [],
+  },
 });
 ```
 
-## 🏷️ Sistema de Tags
+## 🏷️ Sistema de Tags Inteligente
 
 El sistema extrae automáticamente tecnologías del texto de las ofertas:
 
@@ -174,63 +153,82 @@ El sistema extrae automáticamente tecnologías del texto de las ofertas:
 - **Frameworks**: React, Angular, Vue, Django, Express, etc.
 - **Bases de datos**: PostgreSQL, MongoDB, MySQL, Redis, etc.
 - **Cloud**: AWS, Azure, GCP, Docker, Kubernetes, etc.
+- **Metodologías**: Agile, Scrum, DevOps, etc.
 
 ### Filtrado inteligente
 
-- Evita falsos positivos (ej: "rust" en "rústicos")
-- Normaliza variaciones (ej: "JS" → "javascript")
-- Categorización automática por tipo de tecnología
+- ✅ Evita falsos positivos (ej: "rust" en "rústicos")
+- ✅ Normaliza variaciones (ej: "JS" → "javascript")
+- ✅ Categorización automática por tipo de tecnología
+- ✅ Específico para el mercado tech chileno
 
-## 📈 Estadísticas
+## 📈 Estadísticas Automáticas
 
-El pipeline genera estadísticas detalladas:
+El pipeline genera estadísticas detalladas en `pipeline_stats.json`:
 
-- Total de trabajos encontrados
-- Distribución por empresa
-- Top tags más frecuentes
-- Distribución geográfica
-- Tipos de trabajo
-- Errores y warnings
+```json
+{
+  "totalJobs": 28,
+  "uniqueCompanies": 6,
+  "uniqueTags": 72,
+  "topTags": {
+    "sql": 7,
+    "technology": 6,
+    "consulting": 6,
+    "java": 6
+  },
+  "byCompany": {
+    "SONDA": 7,
+    "Falabella": 7,
+    "Accenture": 6
+  }
+}
+```
 
-## 🔧 Desarrollo
+## 🔧 Desarrollo y Calidad de Código
 
-### Estructura del proyecto
+Este proyecto utiliza **Biome.js** como linter y formateador:
+
+```bash
+# Verificar problemas de linting
+bun run lint
+
+# Corregir problemas automáticamente
+bun run lint:fix
+
+# Formatear código
+bun run format:write
+
+# Verificar y aplicar todas las correcciones
+bun run check:fix
+```
+
+## 🏗️ Estructura del Proyecto
 
 ```
 src/
-├── main.js                 # Punto de entrada principal
+├── main.js                 # 🚀 Punto de entrada principal
 ├── config/
-│   └── config.js          # Configuraciones globales
+│   └── config.js          # ⚙️ Configuraciones (opcional)
 ├── scrapers/
-│   ├── base-scraper.js    # Clase base para scrapers
-│   ├── scraping-pipeline.js # Pipeline unificado
-│   ├── falabella.scrap.js # Scraper de Falabella
-│   ├── fintual.scrap.js   # Scraper de Fintual
+│   ├── base-scraper.js    # 🏗️ Clase base para scrapers
+│   ├── scraping-pipeline.js # 🔄 Pipeline unificado
+│   ├── accenture.scrap.js # 🌟 Scraper de Accenture
+│   ├── falabella.scrap.js # 🛒 Scraper de Falabella
 │   └── ...                # Otros scrapers
 └── utils/
-    ├── common_tags.js     # Sistema de tags
-    └── tag-system-demo.js # Demostración de tags
+    ├── common_tags.js     # 🏷️ Sistema de tags
+    └── tag-system-demo.js # 🧪 Demostración de tags
 ```
 
-### Crear un nuevo scraper
+## ✨ Ventajas del Sistema
 
-1. Extiende la clase `BaseScraper` de `base-scraper.js`
-2. Implementa el método `run(filters)`
-3. Registra el scraper en `main.js`
-
-```javascript
-const MiScraper = require('./scrapers/mi-scraper.js');
-
-const miScraper = new MiScraper({
-  maxAgeDays: 7,
-  outputDir: './output'
-});
-
-pipeline.registerScraper('mi-empresa', miScraper, {
-  enabled: true,
-  priority: 1
-});
-```
+- **🚀 Rápido**: Powered by Bun para máximo rendimiento
+- **📦 Simple**: Sin bases de datos, sin configuraciones complejas
+- **🔧 Modular**: Fácil agregar nuevos scrapers
+- **📊 Completo**: Estadísticas detalladas automáticas
+- **🏷️ Inteligente**: Sistema avanzado de extracción de tags
+- **🇨🇱 Local**: Optimizado para el mercado tech chileno
 
 ## 🤝 Contribuir
 
@@ -246,15 +244,10 @@ pipeline.registerScraper('mi-empresa', miScraper, {
 - **Términos de Uso**: Asegúrate de cumplir con los términos de servicio de cada sitio.
 - **Ética**: Usa este proyecto de manera responsable y ética.
 
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
-
 ## 🐛 Problemas conocidos
 
 - Algunos scrapers pueden fallar si las empresas cambian su estructura web
 - El modo paralelo puede causar rate limiting en sitios sensibles
-- Las APIs pueden requerir autenticación adicional
 
 ## 📞 Soporte
 
@@ -267,3 +260,5 @@ Si encuentras problemas o tienes sugerencias:
 ---
 
 ⭐ **¡Si este proyecto te resulta útil, dale una estrella!** ⭐
+
+**✨ Sistema simple, potente y listo para usar ✨**
