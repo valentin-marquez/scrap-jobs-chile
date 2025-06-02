@@ -4,6 +4,8 @@
     "axios-cookiejar-support": "^4.0.7",
     "base-64": "^1.0.0",
     "cheerio": "^1.0.0",
+    "dotenv": "^16.3.1",
+    "form-data": "^4.0.1",
     "https": "^1.0.0",
     "jsonld-context-parser": "^3.0.0",
     "puppeteer": "^24.9.0",
@@ -11,15 +13,16 @@
     "turndown": "^7.2.0"
   },
   "scripts": {
-    "start": "node src/main.js",
-    "scrape:all": "node src/main.js",
-    "scrape:parallel": "PARALLEL=true node src/main.js",
-    "scrape:falabella": "node src/scrapers/falabella-scraper.js",
-    "scrape:desafiolatam": "node -e \"const DesafioLatamScraper = require('./src/scrapers/desafiolatam.scrap'); const scraper = new DesafioLatamScraper(); scraper.run().then(result => { console.log('Resultados:', result.jobs.length, 'trabajos'); scraper.saveJobs('desafiolatam_jobs.json'); }).catch(console.error);\"",
-    "scrape:bancochile": "node -e \"const BancoChileScraper = require('./src/scrapers/bancochile.scrap'); const scraper = new BancoChileScraper(); scraper.run().then(result => { console.log('Resultados:', result.jobs.length, 'trabajos'); scraper.saveJobs('bancochile_jobs.json'); }).catch(console.error);\"",
-    "test:tags": "node -e \"const { extractTags } = require('./src/utils/common_tags'); console.log('Testing tag extraction:'); console.log(extractTags('Senior Rust developer with experience in rustic systems'));\"",
-    "demo:tags": "node src/utils/tag-system-demo.js",
-    "demo": "node -e \"require('./src/main.js')\"",
+    "start": "bun src/main.js",
+    "scrape:all": "bun src/main.js",
+    "scrape:parallel": "PARALLEL=true bun src/main.js",
+    "scrape:accenture": "bun -e \"const AccentureScraper = require('./src/scrapers/accenture.scrap'); const scraper = new AccentureScraper(); scraper.run().then(result => { console.log('Resultados:', result.jobs.length, 'trabajos'); scraper.saveJobs('accenture_jobs.json'); }).catch(console.error);\"",
+    "scrape:falabella": "bun src/scrapers/falabella-scraper.js",
+    "scrape:desafiolatam": "bun -e \"const DesafioLatamScraper = require('./src/scrapers/desafiolatam.scrap'); const scraper = new DesafioLatamScraper(); scraper.run().then(result => { console.log('Resultados:', result.jobs.length, 'trabajos'); scraper.saveJobs('desafiolatam_jobs.json'); }).catch(console.error);\"",
+    "scrape:bancochile": "bun -e \"const BancoChileScraper = require('./src/scrapers/bancochile.scrap'); const scraper = new BancoChileScraper(); scraper.run().then(result => { console.log('Resultados:', result.jobs.length, 'trabajos'); scraper.saveJobs('bancochile_jobs.json'); }).catch(console.error);\"",
+    "test:tags": "bun -e \"const { extractTags } = require('./src/utils/common_tags'); console.log('Testing tag extraction:'); console.log(extractTags('Senior Rust developer with experience in rustic systems'));\"",
+    "demo:tags": "bun src/utils/tag-system-demo.js",
+    "demo": "bun -e \"require('./src/main.js')\"",
     "clean": "rm -rf output/*.json",
     "setup": "mkdir -p output && echo 'Output directory created'",
     "lint": "biome lint src/",
@@ -28,19 +31,19 @@
     "format:write": "biome format --write src/",
     "check": "biome check src/",
     "check:fix": "biome check --apply src/",
-    "# Legacy scripts (deprecated)": "",
-    "scrape:apiux": "node src/scrapers/apiuxtech.scrap.js",
-    "scrape:betterfly": "node src/scrapers/betterfly.scrap.js",
-    "scrape:entel": "node src/scrapers/entel.scrap.js",
-    "scrape:fintual": "node src/scrapers/fintual.scrap.js",
-    "scrape:sonda": "node src/scrapers/sona.scrap.js"
+    "scrape:apiux": "bun src/scrapers/apiuxtech.scrap.js",
+    "scrape:betterfly": "bun src/scrapers/betterfly.scrap.js",
+    "scrape:entel": "bun src/scrapers/entel.scrap.js",
+    "scrape:fintual": "bun src/scrapers/fintual.scrap.js",
+    "scrape:sonda": "bun src/scrapers/sona.scrap.js"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "nodemon": "^3.0.0"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=14.0.0",
+    "bun": ">=1.0.0"
   },
   "keywords": [
     "scraping",
@@ -48,8 +51,9 @@
     "chile",
     "tech",
     "automation",
-    "pipeline"
+    "pipeline",
+    "accenture"
   ],
-  "description": "Sistema modular de scraping para ofertas de trabajo tecnológicas en Chile",
+  "description": "Sistema modular de scraping para ofertas de trabajo tecnológicas en Chile - Incluye Accenture",
   "main": "src/main.js"
 }

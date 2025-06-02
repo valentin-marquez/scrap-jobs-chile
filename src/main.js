@@ -10,6 +10,7 @@ const ApiuxTechScraper = require('./scrapers/apiuxtech.scrap');
 const BancoEstadoScraper = require('./scrapers/bancoestado.scrap');
 const DesafioLatamScraper = require('./scrapers/desafiolatam.scrap');
 const BancoChileScraper = require('./scrapers/bancochile.scrap');
+const AccentureScraper = require('./scrapers/accenture.scrap');
 
 /**
  * Archivo principal para ejecutar el pipeline de scraping
@@ -161,6 +162,20 @@ async function main() {
       },
     });
 
+    // 10. Accenture - Portal de carreras Accenture
+    const accentureScraper = new AccentureScraper({
+      maxAgeDays: 7,
+      outputDir: './output',
+    });
+    pipeline.registerScraper('accenture', accentureScraper, {
+      enabled: true,
+      priority: 10,
+      filters: {
+        locations: ['chile', 'santiago'],
+        excludeTags: [],
+      },
+    });
+
     console.log('✅ Todos los scrapers registrados:');
     console.log('   1. 🛒 Falabella (API)');
     console.log('   2. 💰 Fintual (Lever)');
@@ -171,6 +186,7 @@ async function main() {
     console.log('   7. 🏦 Banco Estado (API Simple)');
     console.log('   8. 🚀 Desafío Latam (Scraper Personalizado)');
     console.log('   9. 🏦 Banco de Chile (Nuevo Scraper)');
+    console.log('  10. 🌟 Accenture (Portal de Carreras)');
 
     // Definir filtros globales mejorados
     const globalFilters = {
